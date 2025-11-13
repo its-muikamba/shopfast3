@@ -1,0 +1,8 @@
+{
+  "name": "ShopFast Restaurant Mode",
+  "description": "A seamless SaaS dining solution that allows diners to discover restaurants, browse menus, order, track, and pay directly from their phones.",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera"
+  ]
+}
