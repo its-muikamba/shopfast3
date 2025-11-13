@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect } from 'react';
 import { Restaurant, StaffMember, StaffRole } from '../../types';
 import { PlusIcon, EditIcon, Trash2Icon } from '../Icons';
@@ -336,7 +337,8 @@ const HQRestaurants: React.FC<{
     };
 
     const handleToggleStatus = (restaurant: Restaurant) => {
-        const newStatus = restaurant.status === 'active' ? 'disabled' : 'active';
+        // Fix: Explicitly define the type of `newStatus` to prevent it from being inferred as a general `string`.
+        const newStatus: 'active' | 'disabled' = restaurant.status === 'active' ? 'disabled' : 'active';
         const updatedRestaurant = { ...restaurant, status: newStatus };
 
         // If disabling the restaurant, require confirmation before proceeding.
@@ -362,8 +364,7 @@ const HQRestaurants: React.FC<{
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cuisine</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Restaurant</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subscription</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
@@ -375,11 +376,15 @@ const HQRestaurants: React.FC<{
                             <tr key={r.id}>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="flex items-center">
-                                        <img className="h-10 w-10 rounded-full object-cover" src={r.logoUrl} alt={`${r.name} logo`} />
-                                        <div className="ml-4 font-medium text-gray-900">{r.name}</div>
+                                        <div className="flex-shrink-0 h-12 w-12">
+                                            <img className="h-12 w-12 rounded-full object-cover" src={r.logoUrl} alt={`${r.name} logo`} />
+                                        </div>
+                                        <div className="ml-4">
+                                            <div className="text-sm font-medium text-gray-900">{r.name}</div>
+                                            <div className="text-sm text-gray-500">{r.cuisine}</div>
+                                        </div>
                                     </div>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{r.cuisine}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                    <div className="flex items-center">
                                         <ToggleSwitch
