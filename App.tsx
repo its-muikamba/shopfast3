@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Restaurant, CartItem, Order, StaffRole, StaffMember, MenuItem } from './types';
 // Fix: Correctly import MENUS instead of the non-existent INITIAL_MENUS.
@@ -313,11 +314,13 @@ const App: React.FC = () => {
                   restaurant={loggedInRestaurant} 
                   role={loggedInRole} 
                   staff={staff}
-                  menu={menus[loggedInRestaurant.id]}
+                  // Fix: Property 'menu' does not exist on type 'IntrinsicAttributes & RestaurantDashboardProps'.
+                  menu={menus[loggedInRestaurant.id] || []}
                   onAddStaffMember={handleAddStaffMember}
                   onUpdateStaffMember={handleUpdateStaffMember}
                   onDeleteStaffMember={handleDeleteStaffMember}
                   onUpdateRestaurant={handleUpdateRestaurant}
+                  // Fix: Property 'onUpdateMenuItem' does not exist on type 'IntrinsicAttributes & RestaurantDashboardProps'.
                   onUpdateMenuItem={(item) => handleUpdateMenuItem(loggedInRestaurant.id, item)}
                   onLogout={handleRestaurantLogout} 
                />;
