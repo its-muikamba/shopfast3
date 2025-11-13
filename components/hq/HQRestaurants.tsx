@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Restaurant, StaffMember, StaffRole } from '../../types';
 import { PlusIcon, EditIcon, Trash2Icon } from '../Icons';
@@ -419,10 +420,11 @@ const HQRestaurants: React.FC<{
                     : 'bg-yellow-500 hover:bg-yellow-600'
                 }
             >
-                {actionToConfirm?.type === 'delete'
-                    ? `Are you sure you want to permanently delete "${actionToConfirm.data.name}"? This will also remove all associated staff. This action cannot be undone.`
-                    : `Are you sure you want to suspend "${actionToConfirm.data.name}"? Their staff will lose access to the restaurant portal.`
-                }
+                {actionToConfirm && (
+                  actionToConfirm.type === 'delete'
+                      ? `Are you sure you want to permanently delete "${actionToConfirm.data.name}"? This will also remove all associated staff. This action cannot be undone.`
+                      : `Are you sure you want to suspend "${actionToConfirm.data.name}"? Their staff will lose access to the restaurant portal.`
+                )}
             </ConfirmationModal>
         </div>
     );
