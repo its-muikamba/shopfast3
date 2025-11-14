@@ -61,7 +61,7 @@ const OrderTrackerScreen: React.FC<OrderTrackerScreenProps> = ({ order, setOrder
                 <h1 className="font-serif text-3xl font-bold text-brand-charcoal">Your order is on its way, {order.orderName}!</h1>
                 <p className="text-gray-500">
                     {order.orderType === 'dine-in' && `We'll bring it to Table ${order.tableNumber}.`}
-                    {order.orderType === 'takeaway' && 'We'll notify you when it's ready for pickup.'}
+                    {order.orderType === 'takeaway' && `We'll notify you when it's ready for pickup.`}
                 </p>
                  <p className="text-xs text-gray-400 mt-2">Order ID: {order.id}</p>
             </div>
