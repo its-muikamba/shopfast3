@@ -140,8 +140,8 @@ export const STAFF_MEMBERS: StaffMember[] = [
 ];
 
 export const ACTIVE_ORDERS: Omit<Order, 'restaurant'>[] = [
-    { id: 'ORD-101', tableNumber: 5, items: [{...MENUS.r1[0], quantity: 1}, {...MENUS.r1[2], quantity: 1}], total: 26.50, status: 'Received' },
-    { id: 'ORD-102', tableNumber: 12, items: [{...MENUS.r1[1], quantity: 2}], total: 24.00, status: 'Received' },
-    { id: 'ORD-103', tableNumber: 8, items: [{...MENUS.r1[3], quantity: 1}, {...MENUS.r1[6], quantity: 2}], total: 29.00, status: 'Preparing' },
-    { id: 'ORD-104', tableNumber: 3, items: [{...MENUS.r1[4], quantity: 1}], total: 9.00, status: 'On Route' },
+    { id: 'ORD-101', tableNumber: 5, items: [{...MENUS.r1[0], quantity: 1}, {...MENUS.r1[2], quantity: 1}], total: 26.50, status: 'Received', orderType: 'dine-in', orderName: 'Gilbert' },
+    { id: 'ORD-102', tableNumber: 12, items: [{...MENUS.r1[1], quantity: 2}], total: 24.00, status: 'Received', orderType: 'dine-in', orderName: 'Xavier' },
+    { id: 'ORD-103', tableNumber: 8, items: [{...MENUS.r1[3], quantity: 1}, {...MENUS.r1[6], quantity: 2}], total: 29.00, status: 'Preparing', orderType: 'dine-in', orderName: 'Diana' },
+    { id: 'ORD-104', tableNumber: 3, items: [{...MENUS.r1[4], quantity: 1}], total: 9.00, status: 'On Route', orderType: 'dine-in', orderName: 'Charles' },
 ];
