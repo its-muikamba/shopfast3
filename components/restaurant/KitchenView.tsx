@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { ACTIVE_ORDERS } from '../../constants';
+import React from 'react';
 import { Order, OrderStatus } from '../../types';
 
 const OrderTicket: React.FC<{ order: Omit<Order, 'restaurant'> }> = ({ order }) => (
@@ -52,11 +51,14 @@ const KitchenColumn: React.FC<{ title: string; orders: Omit<Order, 'restaurant'>
     )
 }
 
-const KitchenView: React.FC<{ restaurantId: string }> = ({ restaurantId }) => {
-    const [orders, setOrders] = useState(ACTIVE_ORDERS);
+interface KitchenViewProps {
+  orders: Omit<Order, 'restaurant'>[];
+  onUpdateOrders: React.Dispatch<React.SetStateAction<Omit<Order, 'restaurant'>[]>>;
+}
 
+const KitchenView: React.FC<KitchenViewProps> = ({ orders, onUpdateOrders }) => {
     const handleDrop = (orderId: string, newStatus: OrderStatus) => {
-        setOrders(prevOrders => {
+        onUpdateOrders(prevOrders => {
             const orderToMove = prevOrders.find(o => o.id === orderId);
             if(orderToMove && orderToMove.status !== newStatus) {
                 // In a real app, you'd also check the status flow is valid

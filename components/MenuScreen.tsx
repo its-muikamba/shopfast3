@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Restaurant, MenuItem, CartItem, MenuItemCategory, AiRecommendation } from '../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Restaurant, MenuItem, CartItem, AiRecommendation } from '../types';
 import getMenuRecommendations from '../services/geminiService';
 import { ChevronLeftIcon, ShoppingCartIcon, SparklesIcon, XIcon, PlusIcon, MinusIcon, CheckCircleIcon } from './Icons';
 
@@ -41,7 +41,7 @@ const MenuItemCard: React.FC<{ item: MenuItem; onAdd: () => void; primaryColor: 
                         className={`
                             text-white rounded-full w-10 h-10 flex items-center justify-center 
                             transform hover:scale-110 transition-all duration-300 ease-in-out
-                            ${isAdded ? 'scale-125' : 'scale-100'}
+                            ${isAdded ? 'scale-125' : ''}
                         `}
                     >
                         {isAdded ? <CheckCircleIcon className="w-6 h-6"/> : <PlusIcon className="w-6 h-6" />}
@@ -167,16 +167,23 @@ interface MenuScreenProps {
 }
 
 const MenuScreen: React.FC<MenuScreenProps> = ({ restaurant, menu, cart, onAddToCart, onUpdateCartQuantity, onPlaceOrder, onBack }) => {
-  const [activeCategory, setActiveCategory] = useState<MenuItemCategory>('Starters');
+  const [activeCategory, setActiveCategory] = useState<string>(restaurant.categories[0] || '');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isRecoModalOpen, setIsRecoModalOpen] = useState(false);
   const [recommendation, setRecommendation] = useState<AiRecommendation | null>(null);
   const [isRecoLoading, setIsRecoLoading] = useState(false);
 
-  const categories = useMemo(() => Array.from(new Set(menu.map(item => item.category))), [menu]);
+  const categories = useMemo(() => restaurant.categories, [restaurant.categories]);
   const filteredMenu = useMemo(() => menu.filter(item => item.category === activeCategory), [menu, activeCategory]);
   const cartItemCount = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
   
+  useEffect(() => {
+      // Ensure active category is valid if categories change
+      if (categories.length > 0 && !categories.includes(activeCategory)) {
+          setActiveCategory(categories[0]);
+      }
+  }, [categories, activeCategory]);
+
   const handleGetRecommendation = async () => {
     setIsRecoModalOpen(true);
     setIsRecoLoading(true);
@@ -261,6 +268,7 @@ const MenuScreen: React.FC<MenuScreenProps> = ({ restaurant, menu, cart, onAddTo
       </div>
       )}
 
+      {/* FIX: Corrected prop name from onUpdateQuantity to onUpdateCartQuantity */}
       <Cart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} cart={cart} onUpdateQuantity={onUpdateCartQuantity} onPlaceOrder={() => { onPlaceOrder(); setIsCartOpen(false); }} restaurantName={restaurant.name} />
       <RecommendationModal isOpen={isRecoModalOpen} onClose={() => setIsRecoModalOpen(false)} recommendation={recommendation} isLoading={isRecoLoading} primaryColor={primaryColor} />
     </div>

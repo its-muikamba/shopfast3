@@ -1,9 +1,7 @@
-
-
-
 import React, { useState, useEffect } from 'react';
 import { Restaurant, StaffMember, StaffRole } from '../../types';
 import { PlusIcon, EditIcon, Trash2Icon } from '../Icons';
+import { defaultPaymentSettings } from '../../constants';
 
 const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -39,7 +37,8 @@ const CreateRestaurantModal: React.FC<{
     isOpen: boolean; 
     onClose: () => void; 
     onSave: (payload: { 
-        restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme'>;
+        // FIX: Add 'tables' and 'serviceRequests' to Omit to align with the implementation in App.tsx and resolve the type error.
+        restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme' | 'categories' | 'tables' | 'serviceRequests'>;
         adminData: Omit<StaffMember, 'id' | 'restaurantId' | 'role' | 'status'>;
     }) => void;
 }> = ({ isOpen, onClose, onSave }) => {
@@ -51,6 +50,7 @@ const CreateRestaurantModal: React.FC<{
         createdAt: new Date().toISOString().split('T')[0],
         imageUrl: '',
         logoUrl: '',
+        paymentSettings: defaultPaymentSettings,
     };
     const initialAdminState = {
         name: '',

@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { Restaurant, StaffRole, RestaurantView, StaffMember } from '../../types';
+import { Restaurant, StaffRole, RestaurantView, StaffMember, MenuItem, Order, ServerAlert, OrderStatus } from '../../types';
 import { 
     LayoutDashboardIcon, ClipboardListIcon, UtensilsCrossedIcon, CreditCardIcon, 
-    FileTextIcon, UsersIcon, SettingsIcon, LogOutIcon 
+    FileTextIcon, UsersIcon, SettingsIcon, LogOutIcon, ArmchairIcon 
 } from '../Icons';
 import RestaurantAdminOverview from './RestaurantAdminOverview';
 import ServerView from './ServerView';
 import KitchenView from './KitchenView';
 import RestaurantStaffManagement from './RestaurantStaffManagement';
 import RestaurantSettings from './RestaurantSettings';
+import MenuBuilder from './MenuBuilder';
+import TableManagement from './TableManagement';
 
 
 interface NavItemProps {
@@ -37,14 +39,41 @@ interface RestaurantDashboardProps {
   restaurant: Restaurant;
   role: StaffRole;
   staff: StaffMember[];
+  menu: MenuItem[];
+  liveOrders: Omit<Order, 'restaurant'>[];
+  onUpdateLiveOrders: React.Dispatch<React.SetStateAction<Omit<Order, 'restaurant'>[]>>;
+  onUpdateOrderStatus: (orderId: string, newStatus: OrderStatus) => void;
+  serverAlerts: ServerAlert[];
+  onResolveAlert: (alertId: string) => void;
   onAddStaffMember: (staffData: Omit<StaffMember, 'id' | 'status'>) => void;
   onUpdateStaffMember: (staffMember: StaffMember) => void;
   onDeleteStaffMember: (staffId: string) => void;
   onUpdateRestaurant: (restaurant: Restaurant) => void;
+  onAddMenuItem: (itemData: Omit<MenuItem, 'id'>) => void;
+  onUpdateMenuItem: (item: MenuItem) => void;
+  onDeleteMenuItem: (itemId: string) => void;
   onLogout: () => void;
 }
 
-const RestaurantDashboard: React.FC<RestaurantDashboardProps> = ({ restaurant, role, staff, onLogout, onAddStaffMember, onUpdateStaffMember, onDeleteStaffMember, onUpdateRestaurant }) => {
+const RestaurantDashboard: React.FC<RestaurantDashboardProps> = ({ 
+    restaurant, 
+    role, 
+    staff, 
+    menu, 
+    liveOrders,
+    onUpdateLiveOrders,
+    onUpdateOrderStatus,
+    serverAlerts,
+    onResolveAlert,
+    onAddStaffMember, 
+    onUpdateStaffMember, 
+    onDeleteStaffMember, 
+    onUpdateRestaurant,
+    onAddMenuItem,
+    onUpdateMenuItem,
+    onDeleteMenuItem,
+    onLogout 
+}) => {
     
     const getInitialView = (role: StaffRole) => {
         switch(role) {
@@ -60,16 +89,17 @@ const RestaurantDashboard: React.FC<RestaurantDashboardProps> = ({ restaurant, r
     
     const adminNav = [
         { view: RestaurantView.DASHBOARD, label: "Dashboard", icon: LayoutDashboardIcon },
-        { view: RestaurantView.ORDERS, label: "Live Orders", icon: ClipboardListIcon },
+        { view: RestaurantView.ORDERS, label: "Live Floor View", icon: ClipboardListIcon },
         { view: RestaurantView.KITCHEN, label: "Kitchen View", icon: UtensilsCrossedIcon },
         { view: RestaurantView.MENU_BUILDER, label: "Menu Builder", icon: FileTextIcon },
+        { view: RestaurantView.TABLE_MANAGEMENT, label: "Table Management", icon: ArmchairIcon },
         { view: RestaurantView.STAFF, label: "Staff", icon: UsersIcon },
         { view: RestaurantView.REPORTS, label: "Reports", icon: CreditCardIcon },
         { view: RestaurantView.SETTINGS, label: "Settings", icon: SettingsIcon },
     ];
 
     const staffNav = {
-        [StaffRole.SERVER]: [ { view: RestaurantView.ORDERS, label: "Live Orders", icon: ClipboardListIcon } ],
+        [StaffRole.SERVER]: [ { view: RestaurantView.ORDERS, label: "Live Floor View", icon: ClipboardListIcon } ],
         [StaffRole.KITCHEN]: [ { view: RestaurantView.KITCHEN, label: "Kitchen View", icon: UtensilsCrossedIcon } ],
         [StaffRole.CASHIER]: [ { view: RestaurantView.CASHIER, label: "Cashier View", icon: CreditCardIcon } ],
     };
@@ -82,11 +112,26 @@ const RestaurantDashboard: React.FC<RestaurantDashboardProps> = ({ restaurant, r
             case RestaurantView.DASHBOARD:
                 return <RestaurantAdminOverview />;
             case RestaurantView.ORDERS:
-                return <ServerView restaurantId={restaurant.id} />;
+                return <ServerView 
+                            restaurant={restaurant} 
+                            liveOrders={liveOrders} 
+                            serverAlerts={serverAlerts} 
+                            onResolveAlert={onResolveAlert}
+                            onUpdateOrderStatus={onUpdateOrderStatus}
+                        />;
             case RestaurantView.KITCHEN:
-                 return <KitchenView restaurantId={restaurant.id} />;
+                 return <KitchenView orders={liveOrders} onUpdateOrders={onUpdateLiveOrders} />;
             case RestaurantView.MENU_BUILDER:
-                return <PlaceholderView title="Menu Builder" />;
+                return <MenuBuilder 
+                            restaurant={restaurant}
+                            menu={menu}
+                            onUpdateRestaurant={onUpdateRestaurant}
+                            onAddMenuItem={onAddMenuItem}
+                            onUpdateMenuItem={onUpdateMenuItem}
+                            onDeleteMenuItem={onDeleteMenuItem}
+                        />;
+            case RestaurantView.TABLE_MANAGEMENT:
+                 return <TableManagement restaurant={restaurant} onUpdateRestaurant={onUpdateRestaurant} />;
             case RestaurantView.STAFF:
                 return <RestaurantStaffManagement 
                             staff={restaurantStaff} 

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Order, OrderStatus } from '../types';
 import { CheckCircleIcon } from './Icons';
 
+// Server-driven flow means the server manually moves status to 'Served'.
 const STATUS_SEQUENCE: OrderStatus[] = ['Received', 'Preparing', 'On Route', 'Served'];
 
 interface StatusItemProps {
@@ -33,21 +34,15 @@ interface OrderTrackerScreenProps {
 const OrderTrackerScreen: React.FC<OrderTrackerScreenProps> = ({ order, setOrder, onOrderServed }) => {
     
     useEffect(() => {
-        const currentStatusIndex = STATUS_SEQUENCE.indexOf(order.status);
-        if (currentStatusIndex < STATUS_SEQUENCE.length - 1) {
-            const timer = setTimeout(() => {
-                const nextStatus = STATUS_SEQUENCE[currentStatusIndex + 1];
-                setOrder(prevOrder => prevOrder ? { ...prevOrder, status: nextStatus } : null);
-            }, 5000); // 5 seconds for demo
-            return () => clearTimeout(timer);
-        } else if (order.status === 'Served') {
+        // The automatic progression from 'On Route' to 'Served' is removed.
+        // This is now triggered by the server's action.
+        if (order.status === 'Served') {
             const finalTimer = setTimeout(() => {
                 onOrderServed();
-            }, 2000);
+            }, 2000); // Wait 2 seconds on "Served" before moving to payment
             return () => clearTimeout(finalTimer);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [order.status, setOrder, onOrderServed]);
+    }, [order.status, onOrderServed]);
 
     const getProgressBarWidth = () => {
         const currentIndex = STATUS_SEQUENCE.indexOf(order.status);
@@ -56,12 +51,16 @@ const OrderTrackerScreen: React.FC<OrderTrackerScreenProps> = ({ order, setOrder
 
     return (
         <div className="bg-white min-h-screen p-6 flex flex-col justify-center items-center text-center">
-            <div className="mb-8">
-                <img src={order.restaurant.logoUrl} alt={order.restaurant.name} className="w-24 h-24 rounded-full mx-auto shadow-lg mb-4" />
+            {/* Restaurant Branding */}
+            <div className="absolute top-6 text-center">
+                <img src={order.restaurant.logoUrl} alt={order.restaurant.name} className="w-16 h-16 rounded-full mx-auto shadow-md mb-2" />
+                <p className="font-semibold text-gray-700">{order.restaurant.name}</p>
+            </div>
+
+            <div className="mb-8 mt-24">
                 <h1 className="font-serif text-3xl font-bold text-brand-charcoal">Your order is on its way, {order.orderName}!</h1>
                 <p className="text-gray-500">
                     {order.orderType === 'dine-in' && `We'll bring it to Table ${order.tableNumber}.`}
-                    {/* FIX: Changed single quotes to backticks to handle the apostrophe */}
                     {order.orderType === 'takeaway' && `We'll notify you when it's ready for pickup.`}
                 </p>
                  <p className="text-xs text-gray-400 mt-2">Order ID: {order.id}</p>
@@ -86,7 +85,24 @@ const OrderTrackerScreen: React.FC<OrderTrackerScreenProps> = ({ order, setOrder
                 </div>
             </div>
 
-            <div className="mt-12 text-center">
+            <div className="w-full max-w-sm bg-gray-50 rounded-2xl p-4 my-8 border border-gray-200">
+                <h3 className="font-bold text-md text-left mb-3 text-brand-charcoal">Your Order</h3>
+                <div className="space-y-2 text-left text-sm">
+                    {order.items.map(item => (
+                        <div key={item.id} className="flex justify-between items-center">
+                            <span className="text-gray-600">{item.name} <span className="text-gray-400">x{item.quantity}</span></span>
+                            <span className="font-medium text-gray-800">${(item.price * item.quantity).toFixed(2)}</span>
+                        </div>
+                    ))}
+                </div>
+                <div className="border-t my-3"></div>
+                <div className="flex justify-between font-bold text-lg text-brand-charcoal text-right">
+                    <span>Total</span>
+                    <span>${order.total.toFixed(2)}</span>
+                </div>
+            </div>
+
+            <div className="text-center">
                 <p className="text-gray-600">Estimated Arrival</p>
                 <p className="font-bold text-2xl text-brand-charcoal">10-15 minutes</p>
             </div>

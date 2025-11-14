@@ -1,10 +1,67 @@
 import React, { useState, useEffect } from 'react';
 import { Order } from '../types';
-import { CheckCircleIcon, QrCodeIcon } from './Icons';
+import { CheckCircleIcon, QrCodeIcon, XIcon, StripeIcon, MpesaIcon, CreditCardIcon } from './Icons';
+
+type PaymentMethod = 'stripe' | 'mpesa' | 'pesapal';
+
+const PaymentModal: React.FC<{
+    method: PaymentMethod,
+    onClose: () => void,
+    onConfirm: () => void,
+    isProcessing: boolean
+}> = ({ method, onClose, onConfirm, isProcessing }) => {
+
+    const renderContent = () => {
+        switch(method) {
+            case 'stripe':
+                return (
+                    <form onSubmit={(e) => { e.preventDefault(); onConfirm(); }}>
+                        <h3 className="text-lg font-semibold mb-2">Pay with Card</h3>
+                        <p className="text-sm text-gray-500 mb-4">Powered by Stripe</p>
+                        <div className="space-y-3">
+                            <input type="text" placeholder="Card Number" className="w-full px-3 py-2 rounded-md border border-gray-300" required />
+                            <div className="flex gap-3">
+                                <input type="text" placeholder="MM / YY" className="w-1/2 px-3 py-2 rounded-md border border-gray-300" required />
+                                <input type="text" placeholder="CVC" className="w-1/2 px-3 py-2 rounded-md border border-gray-300" required />
+                            </div>
+                        </div>
+                        <button type="submit" disabled={isProcessing} className="w-full mt-6 bg-brand-charcoal text-white font-bold py-3 rounded-lg disabled:bg-gray-400">
+                             {isProcessing ? 'Processing...' : 'Pay Now'}
+                        </button>
+                    </form>
+                );
+            case 'mpesa':
+                return (
+                    <form onSubmit={(e) => { e.preventDefault(); onConfirm(); }}>
+                        <h3 className="text-lg font-semibold mb-2">Pay with M-Pesa</h3>
+                        <p className="text-sm text-gray-500 mb-4">You will receive an STK push on your phone.</p>
+                        <input type="tel" placeholder="e.g. 0712345678" className="w-full px-3 py-2 rounded-md border border-gray-300" required />
+                        <button type="submit" disabled={isProcessing} className="w-full mt-6 bg-brand-emerald text-white font-bold py-3 rounded-lg disabled:bg-gray-400">
+                            {isProcessing ? 'Processing...' : 'Confirm Payment'}
+                        </button>
+                    </form>
+                );
+            default: return null;
+        }
+    }
+
+    return (
+         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 relative">
+                 <button onClick={onClose} className="absolute top-3 right-3 text-gray-400 hover:text-black">
+                    <XIcon className="w-5 h-5" />
+                </button>
+                {renderContent()}
+            </div>
+        </div>
+    )
+}
+
 
 const PaymentScreen: React.FC<{ order: Order; onPaymentSuccess: () => void; onFinish: () => void; }> = ({ order, onPaymentSuccess, onFinish }) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [isVerified, setIsVerified] = useState(false);
+    const [activePaymentModal, setActivePaymentModal] = useState<PaymentMethod | null>(null);
 
     useEffect(() => {
         if (order.status === 'Paid') {
@@ -18,10 +75,11 @@ const PaymentScreen: React.FC<{ order: Order; onPaymentSuccess: () => void; onFi
         setTimeout(() => {
             onPaymentSuccess();
             setIsProcessing(false);
+            setActivePaymentModal(null);
         }, 2000); // Simulate payment processing
     };
     
-    const { theme } = order.restaurant;
+    const { theme, paymentSettings } = order.restaurant;
 
     if (isVerified) {
         return (
@@ -31,7 +89,8 @@ const PaymentScreen: React.FC<{ order: Order; onPaymentSuccess: () => void; onFi
             >
                 <img src={order.restaurant.logoUrl} alt={`${order.restaurant.name} Logo`} className="w-24 h-24 rounded-full mx-auto mb-4 shadow-lg object-cover" />
                 <h1 className="font-serif text-4xl font-bold mb-2">Payment Verified!</h1>
-                <p className="text-lg opacity-90 mb-8">Thank you, {order.orderName}, for dining with {order.restaurant.name}.</p>
+                <p className="text-lg opacity-90 mb-2">Thank you, {order.orderName}, for dining with {order.restaurant.name}.</p>
+                {order.tableNumber && <p className="text-lg opacity-90 mb-8">Your order for Table {order.tableNumber} is complete.</p>}
                 <button 
                     onClick={onFinish}
                     className="bg-white font-bold py-3 px-8 rounded-full shadow-lg text-lg transform hover:scale-105 transition-transform"
@@ -95,24 +154,37 @@ const PaymentScreen: React.FC<{ order: Order; onPaymentSuccess: () => void; onFi
                 </div>
             </div>
 
-            <div className="space-y-4">
-                 <button 
-                    onClick={handlePay}
-                    disabled={isProcessing}
-                    style={isProcessing ? undefined : { backgroundColor: theme.primaryColor }}
-                    className="w-full text-white font-bold py-4 rounded-full shadow-lg flex items-center justify-center gap-2 transition hover:bg-opacity-90 disabled:bg-gray-400"
-                >
-                    {isProcessing ? (
-                        <>
-                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                            <span>Processing...</span>
-                        </>
-                    ) : (
-                        <span>Pay with Card / Mpesa</span>
+            <div>
+                <h3 className="font-bold text-lg mb-3">Payment Method</h3>
+                <div className="space-y-3">
+                    {paymentSettings.stripe.enabled && (
+                        <button onClick={() => setActivePaymentModal('stripe')} className="w-full text-brand-charcoal font-bold py-3 px-4 rounded-lg shadow-sm flex items-center justify-center gap-3 transition hover:bg-gray-100 border border-gray-200">
+                           <StripeIcon className="w-10 h-6" /> <span>Pay with Card</span>
+                        </button>
                     )}
-                </button>
+                     {paymentSettings.mpesa.enabled && (
+                        <button onClick={() => setActivePaymentModal('mpesa')} className="w-full text-brand-charcoal font-bold py-3 px-4 rounded-lg shadow-sm flex items-center justify-center gap-3 transition hover:bg-gray-100 border border-gray-200">
+                            <MpesaIcon className="h-6" /> <span>Pay with M-Pesa</span>
+                        </button>
+                    )}
+                     {paymentSettings.pesapal.enabled && (
+                        <button onClick={() => setActivePaymentModal('pesapal')} className="w-full text-brand-charcoal font-bold py-3 px-4 rounded-lg shadow-sm flex items-center justify-center gap-3 transition hover:bg-gray-100 border border-gray-200">
+                           <CreditCardIcon className="w-6 h-6" /> <span>Pay with Pesapal</span>
+                        </button>
+                    )}
+                </div>
             </div>
-             <p className="text-xs text-center text-gray-400 mt-4">Powered by ShopFast Secure Payments</p>
+
+             <p className="text-xs text-center text-gray-400 mt-6">Powered by ShopFast Secure Payments</p>
+
+            {activePaymentModal && (
+                <PaymentModal 
+                    method={activePaymentModal}
+                    onClose={() => setActivePaymentModal(null)}
+                    onConfirm={handlePay}
+                    isProcessing={isProcessing}
+                />
+            )}
         </div>
     );
 };

@@ -22,7 +22,8 @@ export enum RestaurantView {
     MENU_BUILDER,
     STAFF,
     REPORTS,
-    SETTINGS
+    SETTINGS,
+    TABLE_MANAGEMENT,
 }
 
 export enum StaffRole {
@@ -30,6 +31,32 @@ export enum StaffRole {
     SERVER = 'Server',
     KITCHEN = 'Kitchen Staff',
     CASHIER = 'Cashier'
+}
+
+export interface PaymentProviderSettings {
+    enabled: boolean;
+    [key: string]: any; // for credentials
+}
+
+export interface PaymentSettings {
+    stripe: PaymentProviderSettings & { publicKey?: string; secretKey?: string; };
+    mpesa: PaymentProviderSettings & { shortCode?: string; consumerKey?: string; consumerSecret?: string; };
+    pesapal: PaymentProviderSettings & { consumerKey?: string; consumerSecret?: string; };
+}
+
+export type IconName = 'HandIcon' | 'ReceiptIcon' | 'BellIcon';
+
+export interface ServiceRequest {
+    id: string;
+    label: string;
+    icon: IconName;
+}
+
+export interface Table {
+    id: string;
+    number: number;
+    capacity: number;
+    status: 'available' | 'occupied' | 'needs-attention';
 }
 
 export interface Restaurant {
@@ -43,6 +70,10 @@ export interface Restaurant {
   status: 'active' | 'disabled';
   createdAt: string;
   subscription: 'basic' | 'premium' | 'enterprise';
+  paymentSettings: PaymentSettings;
+  categories: string[];
+  tables: Table[];
+  serviceRequests: ServiceRequest[];
   theme: {
     welcomeMessage: string;
     primaryColor: string;
@@ -54,7 +85,7 @@ export interface Restaurant {
   };
 }
 
-export type MenuItemCategory = 'Starters' | 'Mains' | 'Desserts' | 'Drinks';
+export type MenuItemCategory = string;
 
 export type MenuItemTag = 'vegetarian' | 'spicy' | 'gluten-free' | 'new';
 
@@ -90,6 +121,15 @@ export interface Order extends OrderContext {
     total: number;
     status: OrderStatus;
 }
+
+export interface ServerAlert {
+    id: string;
+    restaurantId: string;
+    tableNumber: number;
+    request: string; // e.g., "Requesting Waiter"
+    timestamp: number;
+}
+
 
 export interface AiRecommendation {
     starter: { name: string; reasoning: string };

@@ -1,5 +1,24 @@
 import { Restaurant, MenuItem, HQMetrics, AuditLog, StaffMember, StaffRole, Order } from './types';
 
+export const defaultPaymentSettings = {
+    stripe: { enabled: false, publicKey: '', secretKey: '' },
+    mpesa: { enabled: false, shortCode: '', consumerKey: '', consumerSecret: '' },
+    pesapal: { enabled: false, consumerKey: '', consumerSecret: '' }
+};
+
+const defaultTables = Array.from({ length: 12 }, (_, i) => ({
+    id: `t${i + 1}`,
+    number: i + 1,
+    capacity: (i % 3 === 0) ? 6 : (i % 2 === 0 ? 4 : 2),
+    status: 'available' as 'available' | 'occupied' | 'needs-attention',
+}));
+
+const defaultServiceRequests = [
+    { id: 'sr1', label: 'Request Waiter', icon: 'HandIcon' as 'HandIcon' },
+    { id: 'sr2', label: 'Request Bill', icon: 'ReceiptIcon' as 'ReceiptIcon' },
+    { id: 'sr3', label: 'General Assistance', icon: 'BellIcon' as 'BellIcon' },
+];
+
 export const RESTAURANTS: Restaurant[] = [
   {
     id: 'r1',
@@ -12,6 +31,14 @@ export const RESTAURANTS: Restaurant[] = [
     status: 'active',
     createdAt: '2023-10-26',
     subscription: 'premium',
+    categories: ['Starters', 'Mains', 'Desserts', 'Drinks'],
+    tables: defaultTables,
+    serviceRequests: defaultServiceRequests,
+    paymentSettings: {
+        stripe: { enabled: true, publicKey: 'pk_test_demo', secretKey: 'sk_test_demo' },
+        mpesa: { enabled: true, shortCode: '123456', consumerKey: 'mpesa_key', consumerSecret: 'mpesa_secret' },
+        pesapal: { enabled: false, consumerKey: '', consumerSecret: '' }
+    },
     theme: {
       welcomeMessage: 'Experience the taste of authentic Italian cuisine!',
       primaryColor: '#C5A052',
@@ -33,6 +60,14 @@ export const RESTAURANTS: Restaurant[] = [
     status: 'active',
     createdAt: '2023-09-15',
     subscription: 'premium',
+    categories: ['Appetizers', 'Main Courses', 'Sushi', 'Beverages'],
+    tables: defaultTables,
+    serviceRequests: defaultServiceRequests,
+    paymentSettings: {
+        stripe: { enabled: true, publicKey: 'pk_test_demo2', secretKey: 'sk_test_demo2' },
+        mpesa: { enabled: false, shortCode: '', consumerKey: '', consumerSecret: '' },
+        pesapal: { enabled: false, consumerKey: '', consumerSecret: '' }
+    },
     theme: {
       welcomeMessage: 'A culinary journey through Asia.',
       primaryColor: '#1BAE89',
@@ -54,6 +89,10 @@ export const RESTAURANTS: Restaurant[] = [
     status: 'disabled',
     createdAt: '2023-11-01',
     subscription: 'basic',
+    categories: ['Starters', 'Burgers & Sandwiches', 'Desserts', 'Drinks'],
+    tables: defaultTables,
+    serviceRequests: defaultServiceRequests,
+    paymentSettings: defaultPaymentSettings,
     theme: {
       welcomeMessage: 'Hearty meals, just like home.',
       primaryColor: '#b91c1c',
@@ -75,6 +114,10 @@ export const RESTAURANTS: Restaurant[] = [
     status: 'active',
     createdAt: '2023-08-05',
     subscription: 'enterprise',
+    categories: ['Oysters & Raw Bar', 'Main Catch', 'Sides', 'Wine List'],
+    tables: defaultTables,
+    serviceRequests: defaultServiceRequests,
+    paymentSettings: defaultPaymentSettings,
     theme: {
       welcomeMessage: 'The freshest catch in town, served daily.',
       primaryColor: '#58A9E0',
@@ -98,22 +141,22 @@ export const MENUS: Record<string, MenuItem[]> = {
     { id: 'm1-k2', name: 'Red Wine', description: 'Glass of house Chianti.', price: 7.00, imageUrl: 'https://picsum.photos/seed/item7/400/300', category: 'Drinks', tags: [] },
   ],
   r2: [
-    { id: 'm2-s1', name: 'Spring Rolls', description: 'Crispy rolls with vegetables.', price: 7.00, imageUrl: 'https://picsum.photos/seed/item8/400/300', category: 'Starters', tags: ['vegetarian'] },
-    { id: 'm2-m1', name: 'Pad Thai', description: 'Stir-fried rice noodles with shrimp.', price: 16.50, imageUrl: 'https://picsum.photos/seed/item9/400/300', category: 'Mains', tags: ['spicy'] },
-    { id: 'm2-d1', name: 'Mango Sticky Rice', description: 'Sweet sticky rice with fresh mango.', price: 8.00, imageUrl: 'https://picsum.photos/seed/item10/400/300', category: 'Desserts', tags: ['gluten-free'] },
-    { id: 'm2-k1', name: 'Thai Iced Tea', description: 'Sweet and creamy black tea.', price: 4.50, imageUrl: 'https://picsum.photos/seed/item11/400/300', category: 'Drinks', tags: [] },
+    { id: 'm2-s1', name: 'Spring Rolls', description: 'Crispy rolls with vegetables.', price: 7.00, imageUrl: 'https://picsum.photos/seed/item8/400/300', category: 'Appetizers', tags: ['vegetarian'] },
+    { id: 'm2-m1', name: 'Pad Thai', description: 'Stir-fried rice noodles with shrimp.', price: 16.50, imageUrl: 'https://picsum.photos/seed/item9/400/300', category: 'Main Courses', tags: ['spicy'] },
+    { id: 'm2-d1', name: 'Mango Sticky Rice', description: 'Sweet sticky rice with fresh mango.', price: 8.00, imageUrl: 'https://picsum.photos/seed/item10/400/300', category: 'Sushi', tags: ['gluten-free'] },
+    { id: 'm2-k1', name: 'Thai Iced Tea', description: 'Sweet and creamy black tea.', price: 4.50, imageUrl: 'https://picsum.photos/seed/item11/400/300', category: 'Beverages', tags: [] },
   ],
   r3: [
     { id: 'm3-s1', name: 'Onion Rings', description: 'Classic battered onion rings.', price: 9.00, imageUrl: 'https://picsum.photos/seed/item12/400/300', category: 'Starters', tags: ['vegetarian'] },
-    { id: 'm3-m1', name: 'Classic Burger', description: 'Beef patty, lettuce, tomato, and cheese.', price: 17.00, imageUrl: 'https://picsum.photos/seed/item13/400/300', category: 'Mains', tags: [] },
+    { id: 'm3-m1', name: 'Classic Burger', description: 'Beef patty, lettuce, tomato, and cheese.', price: 17.00, imageUrl: 'https://picsum.photos/seed/item13/400/300', category: 'Burgers & Sandwiches', tags: [] },
     { id: 'm3-d1', name: 'Apple Pie', description: 'Warm apple pie with a scoop of vanilla ice cream.', price: 7.50, imageUrl: 'https://picsum.photos/seed/item14/400/300', category: 'Desserts', tags: [] },
     { id: 'm3-k1', name: 'Craft Beer', description: 'Local IPA.', price: 8.00, imageUrl: 'https://picsum.photos/seed/item15/400/300', category: 'Drinks', tags: [] },
   ],
   r4: [
-    { id: 'm4-s1', name: 'Oysters', description: 'Half a dozen fresh oysters.', price: 18.00, imageUrl: 'https://picsum.photos/seed/item16/400/300', category: 'Starters', tags: ['new'] },
-    { id: 'm4-m1', name: 'Grilled Salmon', description: 'Served with asparagus and lemon.', price: 25.00, imageUrl: 'https://picsum.photos/seed/item17/400/300', category: 'Mains', tags: ['gluten-free'] },
-    { id: 'm4-d1', name: 'Key Lime Pie', description: 'Tangy and sweet.', price: 8.50, imageUrl: 'https://picsum.photos/seed/item18/400/300', category: 'Desserts', tags: [] },
-    { id: 'm4-k1', name: 'White Wine', description: 'Glass of Sauvignon Blanc.', price: 9.00, imageUrl: 'https://picsum.photos/seed/item19/400/300', category: 'Drinks', tags: [] },
+    { id: 'm4-s1', name: 'Oysters', description: 'Half a dozen fresh oysters.', price: 18.00, imageUrl: 'https://picsum.photos/seed/item16/400/300', category: 'Oysters & Raw Bar', tags: ['new'] },
+    { id: 'm4-m1', name: 'Grilled Salmon', description: 'Served with asparagus and lemon.', price: 25.00, imageUrl: 'https://picsum.photos/seed/item17/400/300', category: 'Main Catch', tags: ['gluten-free'] },
+    { id: 'm4-d1', name: 'Key Lime Pie', description: 'Tangy and sweet.', price: 8.50, imageUrl: 'https://picsum.photos/seed/item18/400/300', category: 'Sides', tags: [] },
+    { id: 'm4-k1', name: 'White Wine', description: 'Glass of Sauvignon Blanc.', price: 9.00, imageUrl: 'https://picsum.photos/seed/item19/400/300', category: 'Wine List', tags: [] },
   ],
 };
 
@@ -139,7 +182,7 @@ export const STAFF_MEMBERS: StaffMember[] = [
     { id: 's6', name: 'Charles Xavier', role: StaffRole.ADMIN, pin: '1122', restaurantId: 'r4', status: 'active'},
 ];
 
-export const ACTIVE_ORDERS: Omit<Order, 'restaurant'>[] = [
+export const INITIAL_ACTIVE_ORDERS: Omit<Order, 'restaurant'>[] = [
     { id: 'ORD-101', tableNumber: 5, items: [{...MENUS.r1[0], quantity: 1}, {...MENUS.r1[2], quantity: 1}], total: 26.50, status: 'Received', orderType: 'dine-in', orderName: 'Gilbert' },
     { id: 'ORD-102', tableNumber: 12, items: [{...MENUS.r1[1], quantity: 2}], total: 24.00, status: 'Received', orderType: 'dine-in', orderName: 'Xavier' },
     { id: 'ORD-103', tableNumber: 8, items: [{...MENUS.r1[3], quantity: 1}, {...MENUS.r1[6], quantity: 2}], total: 29.00, status: 'Preparing', orderType: 'dine-in', orderName: 'Diana' },

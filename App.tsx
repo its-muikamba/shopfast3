@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Restaurant, CartItem, Order, StaffRole, StaffMember, MenuItem, OrderContext } from './types';
-import { RESTAURANTS, MENUS, STAFF_MEMBERS } from './constants';
+import { View, Restaurant, CartItem, Order, StaffRole, StaffMember, MenuItem, OrderContext, ServerAlert, OrderStatus } from './types';
+import { RESTAURANTS, MENUS, STAFF_MEMBERS, INITIAL_ACTIVE_ORDERS } from './constants';
 import HomeScreen from './components/HomeScreen';
 import MenuScreen from './components/MenuScreen';
 import OrderTrackerScreen from './components/OrderTrackerScreen';
@@ -11,6 +12,8 @@ import HQDashboard from './components/hq/HQDashboard';
 import RestaurantLoginScreen from './components/restaurant/RestaurantLoginScreen';
 import RestaurantDashboard from './components/restaurant/RestaurantDashboard';
 import OrderContextModal from './components/OrderContextModal';
+import FloatingActionButton from './components/FloatingActionButton';
+import ServiceRequestModal from './components/ServiceRequestModal';
 
 const DinerApp: React.FC<{
   restaurants: Restaurant[];
@@ -28,12 +31,20 @@ const DinerApp: React.FC<{
   setView: (view: View) => void;
   handlePaymentSuccess: () => void;
   resetApp: () => void;
+  onCallServer: (request: string) => void;
+  // FIX: Add orderContext to DinerApp props to resolve 'Cannot find name' error.
+  orderContext: OrderContext | null;
 }> = (props) => {
   const {
     restaurants, onSelectRestaurant, selectedRestaurant, menu, view, cart, 
     handleAddToCart, handleUpdateCartQuantity, handlePlaceOrder, 
-    handleBackToHome, order, setOrder, setView, handlePaymentSuccess, resetApp
+    handleBackToHome, order, setOrder, setView, handlePaymentSuccess, resetApp,
+    onCallServer,
+    // FIX: Destructure orderContext from props.
+    orderContext
   } = props;
+
+  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
 
   const renderContent = () => {
     switch (view) {
@@ -65,6 +76,16 @@ const DinerApp: React.FC<{
     }
   };
 
+  const showFab = (view === View.MENU || view === View.TRACKING || view === View.PAYMENT) && selectedRestaurant;
+
+  const handleServiceRequest = (request: string) => {
+    if (order || (orderContext && orderContext.orderType === 'dine-in')) {
+      onCallServer(request);
+    } else {
+      console.log(`Service Request for non-dine-in order: ${request}`);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white font-sans text-brand-charcoal md:max-w-md md:mx-auto md:shadow-2xl md:my-4 md:rounded-lg">
       <main className="relative">{renderContent()}</main>
@@ -75,6 +96,22 @@ const DinerApp: React.FC<{
         </div>
         &copy; {new Date().getFullYear()} ShopFast Restaurant Mode. All rights reserved.
       </footer>
+      
+      {showFab && (
+          <FloatingActionButton 
+            onClick={() => setIsServiceModalOpen(true)}
+            primaryColor={selectedRestaurant.theme.primaryColor}
+          />
+      )}
+      {isServiceModalOpen && selectedRestaurant && (
+          <ServiceRequestModal
+            isOpen={isServiceModalOpen}
+            onClose={() => setIsServiceModalOpen(false)}
+            serviceRequests={selectedRestaurant.serviceRequests}
+            onSelectRequest={handleServiceRequest}
+            primaryColor={selectedRestaurant.theme.primaryColor}
+          />
+      )}
     </div>
   );
 };
@@ -123,6 +160,29 @@ const App: React.FC = () => {
   // Restaurant App State
   const [loggedInRestaurant, setLoggedInRestaurant] = useState<Restaurant | null>(null);
   const [loggedInRole, setLoggedInRole] = useState<StaffRole | null>(null);
+  const [liveOrders, setLiveOrders] = useState<Omit<Order, 'restaurant'>[]>(INITIAL_ACTIVE_ORDERS);
+  const [serverAlerts, setServerAlerts] = useState<ServerAlert[]>([]);
+
+  // Simulate new orders for the restaurant dashboard
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLiveOrders(prevOrders => {
+        if (prevOrders.length > 20) return prevOrders; // Cap the number of orders
+        const newMockOrder: Omit<Order, 'restaurant'> = {
+          id: `ORD-${Date.now()}`,
+          tableNumber: Math.floor(Math.random() * 12) + 1,
+          items: [{ ...MENUS.r1[Math.floor(Math.random() * 2)], quantity: 1 }, { ...MENUS.r1[Math.floor(Math.random() * 3) + 2], quantity: Math.floor(Math.random() * 2) + 1 }],
+          total: parseFloat((Math.random() * 50 + 10).toFixed(2)),
+          status: 'Received',
+          orderType: 'dine-in',
+          orderName: ['Alice', 'Bob', 'Charlie', 'David', 'Eve'][Math.floor(Math.random() * 5)],
+        };
+        return [newMockOrder, ...prevOrders];
+      });
+    }, 12000); // New order every 12 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Diner App Logic
   const handleSelectRestaurant = (restaurant: Restaurant) => {
@@ -197,12 +257,34 @@ const App: React.FC = () => {
     setView(View.HOME);
   };
 
+  const handleCallServer = (request: string) => {
+    const context = order || orderContext;
+    if (!selectedRestaurant || !context || context.orderType !== 'dine-in' || !context.tableNumber) {
+        console.warn("Cannot call server: missing context or not a dine-in order.");
+        return;
+    };
+    
+    const newAlert: ServerAlert = {
+        id: `alert-${Date.now()}`,
+        restaurantId: selectedRestaurant.id,
+        tableNumber: context.tableNumber,
+        request: request,
+        timestamp: Date.now(),
+    };
+    setServerAlerts(prev => [...prev, newAlert]);
+  };
+
+  const handleResolveAlert = (alertId: string) => {
+    setServerAlerts(prev => prev.filter(a => a.id !== alertId));
+  };
+
+
   // HQ App Logic
   const handleHqLogin = () => setIsHqLoggedIn(true);
   const handleHqLogout = () => {
     setIsHqLoggedIn(false);
   };
-  const handleAddRestaurant = (payload: { restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme'>, adminData: Omit<StaffMember, 'id' | 'restaurantId' | 'role' | 'status'>}) => {
+  const handleAddRestaurant = (payload: { restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme' | 'categories' | 'tables' | 'serviceRequests' | 'paymentSettings'>, adminData: Omit<StaffMember, 'id' | 'restaurantId' | 'role' | 'status'>}) => {
     const { restaurantData, adminData } = payload;
     const newRestaurantId = `r${Date.now()}`;
     
@@ -211,6 +293,14 @@ const App: React.FC = () => {
       id: newRestaurantId,
       rating: 0,
       distance: 'new',
+      categories: ['Starters', 'Mains', 'Desserts', 'Drinks'],
+      tables: [],
+      serviceRequests: [],
+       paymentSettings: {
+        stripe: { enabled: false },
+        mpesa: { enabled: false },
+        pesapal: { enabled: false }
+      },
       theme: {
           welcomeMessage: `Welcome to ${restaurantData.name}!`,
           primaryColor: '#C5A052', // Default gold
@@ -232,6 +322,7 @@ const App: React.FC = () => {
     
     setRestaurants(prev => [newRestaurant, ...prev]);
     setStaff(prev => [...prev, newAdmin]);
+    setMenus(prev => ({ ...prev, [newRestaurantId]: [] }));
   };
   const handleUpdateRestaurant = (updatedRestaurant: Restaurant) => {
     setRestaurants(prev => prev.map(r => r.id === updatedRestaurant.id ? updatedRestaurant : r));
@@ -251,6 +342,11 @@ const App: React.FC = () => {
   const handleDeleteRestaurant = (restaurantId: string) => {
     setRestaurants(prev => prev.filter(r => r.id !== restaurantId));
     setStaff(prev => prev.filter(s => s.restaurantId !== restaurantId));
+    setMenus(prev => {
+      const newMenus = {...prev};
+      delete newMenus[restaurantId];
+      return newMenus;
+    });
   };
 
   const handleUpdateStaffMember = (updatedStaff: StaffMember) => {
@@ -261,10 +357,28 @@ const App: React.FC = () => {
     setStaff(prev => prev.filter(s => s.id !== staffId));
   };
 
+  const handleAddMenuItem = (restaurantId: string, newItemData: Omit<MenuItem, 'id'>) => {
+    const newItem: MenuItem = {
+      ...newItemData,
+      id: `m-${restaurantId}-${Date.now()}`,
+    };
+    setMenus(prevMenus => ({
+      ...prevMenus,
+      [restaurantId]: [...(prevMenus[restaurantId] || []), newItem],
+    }));
+  };
+
   const handleUpdateMenuItem = (restaurantId: string, updatedItem: MenuItem) => {
     setMenus(prevMenus => ({
       ...prevMenus,
       [restaurantId]: prevMenus[restaurantId].map(item => item.id === updatedItem.id ? updatedItem : item)
+    }));
+  };
+
+  const handleDeleteMenuItem = (restaurantId: string, itemId: string) => {
+    setMenus(prevMenus => ({
+      ...prevMenus,
+      [restaurantId]: prevMenus[restaurantId].filter(item => item.id !== itemId),
     }));
   };
   
@@ -297,6 +411,11 @@ const App: React.FC = () => {
     setLoggedInRole(null);
   };
 
+  const handleUpdateOrderStatus = (orderId: string, newStatus: OrderStatus) => {
+    setLiveOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+  };
+
+
   const renderApp = () => {
     switch(appMode) {
       case 'hq':
@@ -321,11 +440,18 @@ const App: React.FC = () => {
                   role={loggedInRole} 
                   staff={staff}
                   menu={menus[loggedInRestaurant.id] || []}
+                  liveOrders={liveOrders}
+                  onUpdateLiveOrders={setLiveOrders}
+                  onUpdateOrderStatus={handleUpdateOrderStatus}
+                  serverAlerts={serverAlerts.filter(a => a.restaurantId === loggedInRestaurant.id)}
+                  onResolveAlert={handleResolveAlert}
                   onAddStaffMember={handleAddStaffMember}
                   onUpdateStaffMember={handleUpdateStaffMember}
                   onDeleteStaffMember={handleDeleteStaffMember}
                   onUpdateRestaurant={handleUpdateRestaurant}
+                  onAddMenuItem={(item) => handleAddMenuItem(loggedInRestaurant.id, item)}
                   onUpdateMenuItem={(item) => handleUpdateMenuItem(loggedInRestaurant.id, item)}
+                  onDeleteMenuItem={(itemId) => handleDeleteMenuItem(loggedInRestaurant.id, itemId)}
                   onLogout={handleRestaurantLogout} 
                />;
       case 'diner':
@@ -334,7 +460,10 @@ const App: React.FC = () => {
           restaurants, onSelectRestaurant: handleSelectRestaurant, selectedRestaurant, 
           menu: selectedRestaurant ? menus[selectedRestaurant.id] : [],
           view, cart, handleAddToCart, handleUpdateCartQuantity, handlePlaceOrder, 
-          handleBackToHome, order, setOrder, setView, handlePaymentSuccess, resetApp
+          handleBackToHome, order, setOrder, setView, handlePaymentSuccess, resetApp,
+          onCallServer: handleCallServer,
+          // FIX: Pass orderContext to DinerApp.
+          orderContext,
         };
         return (
           <>

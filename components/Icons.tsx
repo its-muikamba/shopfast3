@@ -142,3 +142,47 @@ export const UserCheckIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) =>
 export const UserXIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" x2="22" y1="8" y2="13"/><line x1="22" x2="17" y1="8" y2="13"/></svg>
 );
+
+export const StripeIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+        <path d="M48 33.6H33.58V48H48V33.6Z" fill="#635BFF"/>
+        <path d="M33.6 0H0V14.4H33.6V0Z" fill="#635BFF"/>
+        <path d="M48 14.4H14.42V28.8H48V14.4Z" fill="#635BFF"/>
+    </svg>
+);
+
+export const MpesaIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg width="24" height="24" viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+        <rect width="100" height="60" rx="4" fill="#4AAE2A"/>
+        <path d="M31.13 41V19H38.77V35.12L50.41 19H58.69L45.45 33.2L59.13 41H50.93L42.61 34.64L38.77 38.36V41H31.13Z" fill="white"/>
+        <path d="M63.5913 41V19H71.2313V38.36H84.1513V41H63.5913Z" fill="white"/>
+    </svg>
+);
+
+export const BellIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+  </svg>
+);
+
+export const HandIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0" />
+    <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2" />
+    <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8" />
+    <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h2" />
+  </svg>
+);
+
+export const ReceiptIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h6"/><path d="M12 18.5A2.5 2.5 0 0 1 9.5 16V8"/>
+    </svg>
+);
+
+export const ArmchairIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <path d="M19 10V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v4"/><path d="M3 10h18"/><path d="M3 12v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6"/><path d="M5 12v-2"/><path d="M19 12v-2"/><path d="M5 18v2"/><path d="M19 18v2"/>
+    </svg>
+);
