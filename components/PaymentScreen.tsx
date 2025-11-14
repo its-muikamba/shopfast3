@@ -31,7 +31,7 @@ const PaymentScreen: React.FC<{ order: Order; onPaymentSuccess: () => void; onFi
             >
                 <img src={order.restaurant.logoUrl} alt={`${order.restaurant.name} Logo`} className="w-24 h-24 rounded-full mx-auto mb-4 shadow-lg object-cover" />
                 <h1 className="font-serif text-4xl font-bold mb-2">Payment Verified!</h1>
-                <p className="text-lg opacity-90 mb-8">Thank you for dining with {order.restaurant.name}.</p>
+                <p className="text-lg opacity-90 mb-8">Thank you, {order.orderName}, for dining with {order.restaurant.name}.</p>
                 <button 
                     onClick={onFinish}
                     className="bg-white font-bold py-3 px-8 rounded-full shadow-lg text-lg transform hover:scale-105 transition-transform"
@@ -58,8 +58,9 @@ const PaymentScreen: React.FC<{ order: Order; onPaymentSuccess: () => void; onFi
                 </div>
 
                 <div className="mt-6 text-center w-full max-w-sm">
-                     <p className="text-sm text-gray-500">Order ID: {order.id}</p>
-                    <p className="text-3xl font-bold text-brand-charcoal">${order.total.toFixed(2)}</p>
+                     <p className="text-sm text-gray-500">Order for {order.orderName}</p>
+                     {order.tableNumber && <p className="text-sm text-gray-500">Table: {order.tableNumber}</p>}
+                    <p className="text-3xl font-bold text-brand-charcoal mt-2">${order.total.toFixed(2)}</p>
                     <div className="mt-4 text-gray-500 animate-pulse">
                         Waiting for server verification...
                     </div>
@@ -73,7 +74,8 @@ const PaymentScreen: React.FC<{ order: Order; onPaymentSuccess: () => void; onFi
             <div className="text-center mb-8">
                  <img src={order.restaurant.logoUrl} alt={`${order.restaurant.name} Logo`} className="w-16 h-16 rounded-full mx-auto mb-3 object-cover shadow" />
                 <h1 className="font-serif text-4xl font-bold text-brand-charcoal">Checkout</h1>
-                <p className="text-gray-500">Review your order and pay</p>
+                <p className="text-gray-500">Order for <span className="font-semibold">{order.orderName}</span></p>
+                 {order.tableNumber && <p className="text-sm text-gray-500">at Table {order.tableNumber}</p>}
             </div>
             
             <div className="bg-gray-50 rounded-2xl p-4 mb-6">
