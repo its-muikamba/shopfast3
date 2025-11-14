@@ -1,9 +1,5 @@
-
-
-
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Restaurant, CartItem, Order, StaffRole, StaffMember, MenuItem } from './types';
-// Fix: Correctly import MENUS instead of the non-existent INITIAL_MENUS.
+import { View, Restaurant, CartItem, Order, StaffRole, StaffMember, MenuItem, OrderContext } from './types';
 import { RESTAURANTS, MENUS, STAFF_MEMBERS } from './constants';
 import HomeScreen from './components/HomeScreen';
 import MenuScreen from './components/MenuScreen';
@@ -14,7 +10,7 @@ import HQLoginScreen from './components/hq/HQLoginScreen';
 import HQDashboard from './components/hq/HQDashboard';
 import RestaurantLoginScreen from './components/restaurant/RestaurantLoginScreen';
 import RestaurantDashboard from './components/restaurant/RestaurantDashboard';
-import MenuBuilder from './components/restaurant/MenuBuilder';
+import OrderContextModal from './components/OrderContextModal';
 
 const DinerApp: React.FC<{
   restaurants: Restaurant[];
@@ -97,7 +93,6 @@ const getAppModeFromHash = (): AppMode => {
 const App: React.FC = () => {
   // Global State
   const [restaurants, setRestaurants] = useState<Restaurant[]>(RESTAURANTS);
-  // Fix: Use MENUS for initializing state, which matches the import.
   const [menus, setMenus] = useState<Record<string, MenuItem[]>>(MENUS);
   const [appMode, setAppMode] = useState<AppMode>(getAppModeFromHash());
 
@@ -118,6 +113,8 @@ const App: React.FC = () => {
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [order, setOrder] = useState<Order | null>(null);
+  const [isOrderContextModalOpen, setIsOrderContextModalOpen] = useState(false);
+  const [orderContext, setOrderContext] = useState<OrderContext | null>(null);
 
   // HQ App State
   const [isHqLoggedIn, setIsHqLoggedIn] = useState(false);
@@ -130,6 +127,12 @@ const App: React.FC = () => {
   // Diner App Logic
   const handleSelectRestaurant = (restaurant: Restaurant) => {
     setSelectedRestaurant(restaurant);
+    setIsOrderContextModalOpen(true);
+  };
+
+  const handleOrderContextSet = (context: OrderContext) => {
+    setOrderContext(context);
+    setIsOrderContextModalOpen(false);
     setView(View.MENU);
   };
 
@@ -159,7 +162,7 @@ const App: React.FC = () => {
   };
 
   const handlePlaceOrder = () => {
-    if (cart.length === 0 || !selectedRestaurant) return;
+    if (cart.length === 0 || !selectedRestaurant || !orderContext) return;
     const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const newOrder: Order = {
       id: `ORD-${Date.now()}`,
@@ -167,9 +170,10 @@ const App: React.FC = () => {
       items: cart,
       total,
       status: 'Received',
-      tableNumber: Math.floor(Math.random() * 20) + 1,
+      ...orderContext,
     };
     setOrder(newOrder);
+    setCart([]);
     setView(View.TRACKING);
   };
   
@@ -183,11 +187,13 @@ const App: React.FC = () => {
       setSelectedRestaurant(null);
       setCart([]);
       setOrder(null);
+      setOrderContext(null);
       window.location.hash = '';
   };
 
   const handleBackToHome = () => {
     setSelectedRestaurant(null);
+    setOrderContext(null);
     setView(View.HOME);
   };
 
@@ -314,13 +320,11 @@ const App: React.FC = () => {
                   restaurant={loggedInRestaurant} 
                   role={loggedInRole} 
                   staff={staff}
-                  // Fix: Property 'menu' does not exist on type 'IntrinsicAttributes & RestaurantDashboardProps'.
                   menu={menus[loggedInRestaurant.id] || []}
                   onAddStaffMember={handleAddStaffMember}
                   onUpdateStaffMember={handleUpdateStaffMember}
                   onDeleteStaffMember={handleDeleteStaffMember}
                   onUpdateRestaurant={handleUpdateRestaurant}
-                  // Fix: Property 'onUpdateMenuItem' does not exist on type 'IntrinsicAttributes & RestaurantDashboardProps'.
                   onUpdateMenuItem={(item) => handleUpdateMenuItem(loggedInRestaurant.id, item)}
                   onLogout={handleRestaurantLogout} 
                />;
@@ -332,7 +336,21 @@ const App: React.FC = () => {
           view, cart, handleAddToCart, handleUpdateCartQuantity, handlePlaceOrder, 
           handleBackToHome, order, setOrder, setView, handlePaymentSuccess, resetApp
         };
-        return <DinerApp {...dinerAppProps} />;
+        return (
+          <>
+            <DinerApp {...dinerAppProps} />
+            {isOrderContextModalOpen && selectedRestaurant && (
+                <OrderContextModal
+                    restaurant={selectedRestaurant}
+                    onClose={() => {
+                        setIsOrderContextModalOpen(false);
+                        setSelectedRestaurant(null);
+                    }}
+                    onSubmit={handleOrderContextSet}
+                />
+            )}
+          </>
+        );
     }
   }
 
