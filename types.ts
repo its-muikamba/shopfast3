@@ -74,13 +74,21 @@ export interface CartItem extends MenuItem {
 
 export type OrderStatus = 'Received' | 'Preparing' | 'On Route' | 'Served' | 'Paid' | 'Verified';
 
-export interface Order {
+export type OrderType = 'dine-in' | 'takeaway' | 'delivery';
+
+export interface OrderContext {
+  orderType: OrderType;
+  orderName: string;
+  tableNumber?: number;
+  deliveryAddress?: string;
+}
+
+export interface Order extends OrderContext {
     id: string;
     restaurant: Restaurant;
     items: CartItem[];
     total: number;
     status: OrderStatus;
-    tableNumber: number;
 }
 
 export interface AiRecommendation {
