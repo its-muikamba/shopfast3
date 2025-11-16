@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Restaurant, Table } from '../../types';
 import { PlusIcon, Trash2Icon, QrCodeIcon } from '../Icons';
@@ -88,6 +87,7 @@ const TableManagement: React.FC<TableManagementProps> = ({ restaurant, onUpdateR
             number: tableNumber,
             capacity: capacity,
             status: 'available',
+            orderCount: 0,
         };
         const updatedRestaurant = {
             ...restaurant,
@@ -156,6 +156,7 @@ const TableManagement: React.FC<TableManagementProps> = ({ restaurant, onUpdateR
                         <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Table Number</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Capacity</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Orders</th>
                             <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
                         </tr>
                     </thead>
@@ -164,6 +165,7 @@ const TableManagement: React.FC<TableManagementProps> = ({ restaurant, onUpdateR
                             <tr key={table.id}>
                                 <td className="px-6 py-4 font-medium">{table.number}</td>
                                 <td className="px-6 py-4 text-sm text-gray-600">{table.capacity} Seats</td>
+                                <td className="px-6 py-4 text-sm text-gray-600">{table.orderCount}</td>
                                 <td className="px-6 py-4 text-center space-x-2">
                                      <button onClick={() => handleDownloadQR(table)} className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-brand-emerald rounded-md hover:bg-opacity-90">
                                         <QrCodeIcon className="w-4 h-4"/>
@@ -178,7 +180,7 @@ const TableManagement: React.FC<TableManagementProps> = ({ restaurant, onUpdateR
                         ))}
                          {restaurant.tables.length === 0 && (
                             <tr>
-                                <td colSpan={3} className="text-center py-10 text-gray-500">No tables created yet.</td>
+                                <td colSpan={4} className="text-center py-10 text-gray-500">No tables created yet.</td>
                             </tr>
                          )}
                     </tbody>

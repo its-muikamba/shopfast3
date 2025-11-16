@@ -45,9 +45,15 @@ const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaurant, onU
                 const newState = { ...prev };
                 let current: any = newState;
                 for (let i = 0; i < keys.length - 1; i++) {
+                    // Create nested object if it doesn't exist
+                    if (current[keys[i]] === undefined) {
+                        current[keys[i]] = {};
+                    }
                     current = current[keys[i]];
                 }
-                current[keys[keys.length - 1]] = value;
+                const finalKey = keys[keys.length - 1];
+                const isNumber = e.target.type === 'number';
+                current[finalKey] = isNumber ? parseFloat(value) : value;
                 return newState;
             });
         } else {
@@ -74,6 +80,8 @@ const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaurant, onU
         setIsSaved(true);
         setTimeout(() => setIsSaved(false), 2000);
     };
+    
+    const canOfferDelivery = restaurant.subscription !== 'basic';
 
     return (
         <div className="max-w-4xl mx-auto">
@@ -137,6 +145,35 @@ const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaurant, onU
                         )}
                      </div>
                 </div>
+
+                {/* Delivery Settings */}
+                {canOfferDelivery && (
+                     <div className="bg-white shadow-md rounded-lg p-8 mt-6">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <h2 className="text-2xl font-bold text-brand-charcoal">Delivery Settings</h2>
+                                <p className="text-sm text-gray-500">Manage your delivery service.</p>
+                            </div>
+                            <ToggleSwitch checked={formData.deliveryConfig?.enabledByAdmin ?? false} onChange={() => handleToggle('deliveryConfig.enabledByAdmin')} />
+                        </div>
+                         {formData.deliveryConfig?.enabledByAdmin && (
+                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4 pt-6 border-t">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Delivery Fee ($)</label>
+                                    <input type="number" step="0.01" name="deliveryConfig.deliveryFee" value={formData.deliveryConfig?.deliveryFee || 0} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                                </div>
+                                 <div>
+                                    <label className="block text-sm font-medium text-gray-700">Delivery Radius (miles)</label>
+                                    <input type="number" name="deliveryConfig.deliveryRadius" value={formData.deliveryConfig?.deliveryRadius || 0} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                                </div>
+                                 <div>
+                                    <label className="block text-sm font-medium text-gray-700">Est. Time (minutes)</label>
+                                    <input type="number" name="deliveryConfig.estimatedTime" value={formData.deliveryConfig?.estimatedTime || 0} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
                 
                  <div className="bg-white shadow-md rounded-lg p-8 mt-6">
                     <h2 className="text-2xl font-bold text-brand-charcoal mb-6">Payment Settings</h2>
@@ -148,7 +185,7 @@ const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaurant, onU
                                     <StripeIcon className="h-8 w-auto"/>
                                     <div>
                                         <h3 className="text-lg font-bold text-brand-charcoal">Stripe</h3>
-                                        <p className={`text-xs font-medium ${formData.paymentSettings.stripe.enabled ? 'text-green-600' : 'text-gray-500'}`}>{formData.paymentSettings.stripe.enabled ? 'Active' : 'Inactive'}</p>
+                                         <p className={`text-xs font-medium ${formData.paymentSettings.stripe.enabled ? 'text-green-600' : 'text-gray-500'}`}>{formData.paymentSettings.stripe.enabled ? 'Active' : 'Inactive'}</p>
                                     </div>
                                 </div>
                                 <ToggleSwitch checked={formData.paymentSettings.stripe.enabled} onChange={() => handleToggle('paymentSettings.stripe.enabled')} />

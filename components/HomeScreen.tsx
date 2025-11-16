@@ -93,7 +93,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ restaurants, onSelectRestaurant
         />
       </div>
 
-      <div className="px-6 pb-24 grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <div className="px-6 pb-24 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredRestaurants.map((restaurant) => (
           <RestaurantCard
             key={restaurant.id}
@@ -103,11 +103,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ restaurants, onSelectRestaurant
         ))}
       </div>
       
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white to-transparent md:max-w-md md:mx-auto md:left-auto md:right-auto md:bottom-4 md:rounded-b-lg">
-          <button onClick={() => setIsScannerOpen(true)} className="w-full bg-brand-charcoal text-white font-bold py-4 px-6 rounded-full shadow-lg flex items-center justify-center gap-2 transform hover:scale-105 transition-transform duration-300">
-            <QrCodeIcon className="w-6 h-6" />
-            <span>Scan QR Code</span>
-          </button>
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-7xl px-4">
+         <div className="max-w-md mx-auto">
+            <div className="p-4 bg-gradient-to-t from-white to-transparent">
+              <button onClick={() => setIsScannerOpen(true)} className="w-full bg-brand-charcoal text-white font-bold py-4 px-6 rounded-full shadow-lg flex items-center justify-center gap-2 transform hover:scale-105 transition-transform duration-300">
+                <QrCodeIcon className="w-6 h-6" />
+                <span>Scan QR Code</span>
+              </button>
+            </div>
+         </div>
       </div>
 
       {isScannerOpen && (

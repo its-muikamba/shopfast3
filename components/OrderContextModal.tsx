@@ -16,19 +16,30 @@ const OrderContextModal: React.FC<OrderContextModalProps> = ({ restaurant, onClo
     const [orderType, setOrderType] = useState<OrderType | null>(null);
     const [tableNumber, setTableNumber] = useState('');
     const [orderName, setOrderName] = useState('');
+    const [deliveryAddress, setDeliveryAddress] = useState('');
     const [isScannerOpen, setIsScannerOpen] = useState(false);
 
     const handleTypeSelect = (type: OrderType) => {
         setOrderType(type);
         if (type === 'dine-in') {
             setStep('table');
-        } else {
+        } else if (type === 'delivery') {
+            setStep('address');
+        }
+        else {
             setStep('name');
         }
     };
 
     const handleTableSubmit = () => {
         if (tableNumber) {
+            setStep('name');
+        }
+    };
+
+    const handleAddressSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (deliveryAddress) {
             setStep('name');
         }
     };
@@ -61,6 +72,7 @@ const OrderContextModal: React.FC<OrderContextModalProps> = ({ restaurant, onClo
                 orderType,
                 orderName,
                 tableNumber: orderType === 'dine-in' ? parseInt(tableNumber, 10) : undefined,
+                deliveryAddress: orderType === 'delivery' ? deliveryAddress : undefined,
             });
         }
     };
@@ -93,13 +105,31 @@ const OrderContextModal: React.FC<OrderContextModalProps> = ({ restaurant, onClo
                         </div>
                     </div>
                 );
+            case 'address':
+                 return (
+                    <form onSubmit={handleAddressSubmit}>
+                        <h3 className="font-serif text-2xl font-bold mb-4">Delivery Details</h3>
+                         <p className="text-gray-600 mb-6">Please enter your delivery address.</p>
+                         <textarea 
+                            value={deliveryAddress}
+                            onChange={(e) => setDeliveryAddress(e.target.value)}
+                            placeholder="e.g., 123 Main St, Anytown, USA" 
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-gold"
+                            rows={3}
+                            required
+                        />
+                         <button type="submit" className="w-full mt-4 bg-brand-charcoal text-white font-bold py-3 px-4 rounded-lg">
+                            Next
+                        </button>
+                    </form>
+                );
             case 'name':
                 return (
                     <form onSubmit={handleNameSubmit}>
                         <h3 className="font-serif text-2xl font-bold mb-4">
                             {orderType === 'dine-in' && `Great, you're at Table ${tableNumber}.`}
                             {orderType === 'takeaway' && `Ready for Takeaway!`}
-                            {orderType === 'delivery' && `Let's arrange your Delivery!`}
+                            {orderType === 'delivery' && `Almost there!`}
                         </h3>
                          <p className="text-gray-600 mb-6">What name should we put on the order?</p>
                          <input 
@@ -117,6 +147,7 @@ const OrderContextModal: React.FC<OrderContextModalProps> = ({ restaurant, onClo
                 );
             case 'type':
             default:
+                const isDeliveryAvailable = restaurant.subscription !== 'basic' && restaurant.deliveryConfig.enabledByAdmin;
                 return (
                     <div>
                         <h3 className="font-serif text-2xl font-bold mb-4">How are you dining?</h3>
@@ -130,13 +161,13 @@ const OrderContextModal: React.FC<OrderContextModalProps> = ({ restaurant, onClo
                                 <p className="text-sm text-gray-500">Pick up your order from the restaurant.</p>
                             </button>
                             <button 
-                                onClick={() => restaurant.subscription !== 'basic' && handleTypeSelect('delivery')} 
-                                className={`w-full text-left p-4 border rounded-lg transition ${restaurant.subscription === 'basic' ? 'opacity-50 cursor-not-allowed' : 'hover:border-brand-gold hover:bg-yellow-50'}`}
-                                disabled={restaurant.subscription === 'basic'}
+                                onClick={() => isDeliveryAvailable && handleTypeSelect('delivery')} 
+                                className={`w-full text-left p-4 border rounded-lg transition ${!isDeliveryAvailable ? 'opacity-50 cursor-not-allowed' : 'hover:border-brand-gold hover:bg-yellow-50'}`}
+                                disabled={!isDeliveryAvailable}
                             >
                                 <h4 className="font-bold">Delivery</h4>
                                 <p className="text-sm text-gray-500">
-                                    {restaurant.subscription === 'basic' ? 'Not available for this restaurant' : 'Get your order delivered to you.'}
+                                    {!isDeliveryAvailable ? 'Delivery not available' : 'Get your order delivered to you.'}
                                 </p>
                             </button>
                         </div>

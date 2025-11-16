@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Order, OrderStatus } from '../types';
 import { CheckCircleIcon } from './Icons';
 
@@ -32,7 +32,8 @@ interface OrderTrackerScreenProps {
 }
 
 const OrderTrackerScreen: React.FC<OrderTrackerScreenProps> = ({ order, setOrder, onOrderServed }) => {
-    
+    const [timeLeft, setTimeLeft] = useState<number | null>(null);
+
     useEffect(() => {
         // The automatic progression from 'On Route' to 'Served' is removed.
         // This is now triggered by the server's action.
@@ -44,10 +45,46 @@ const OrderTrackerScreen: React.FC<OrderTrackerScreenProps> = ({ order, setOrder
         }
     }, [order.status, onOrderServed]);
 
+    useEffect(() => {
+        const activeTrackingStatuses: OrderStatus[] = ['Received', 'Preparing', 'On Route', 'Out for Delivery'];
+        if (activeTrackingStatuses.includes(order.status) && order.preparationTime && order.acceptedAt) {
+            const calculateTimeLeft = () => {
+                const now = Date.now();
+                const endTime = order.acceptedAt! + order.preparationTime! * 60 * 1000;
+                const secondsLeft = Math.round((endTime - now) / 1000);
+                setTimeLeft(secondsLeft > 0 ? secondsLeft : 0);
+            };
+            calculateTimeLeft();
+            const interval = setInterval(calculateTimeLeft, 1000);
+            return () => clearInterval(interval);
+        } else {
+            setTimeLeft(null); // Clear timer if not in an active tracking state
+        }
+    }, [order.status, order.preparationTime, order.acceptedAt]);
+
     const getProgressBarWidth = () => {
         const currentIndex = STATUS_SEQUENCE.indexOf(order.status);
         return `${(currentIndex / (STATUS_SEQUENCE.length - 1)) * 100}%`;
     }
+
+    const formatTime = (seconds: number) => {
+        if (seconds <= 0) return "Arriving now";
+        const mins = Math.ceil(seconds / 60);
+        return `~${mins} min`;
+    };
+
+    const getOrderMessage = () => {
+        switch (order.orderType) {
+            case 'dine-in':
+                return `We'll bring it to Table ${order.tableNumber}.`;
+            case 'takeaway':
+                return `We'll notify you when it's ready for pickup.`;
+            case 'delivery':
+                return `It's on its way to ${order.deliveryAddress}.`;
+            default:
+                return '';
+        }
+    };
 
     return (
         <div className="bg-white min-h-screen p-6 flex flex-col justify-center items-center text-center">
@@ -60,8 +97,7 @@ const OrderTrackerScreen: React.FC<OrderTrackerScreenProps> = ({ order, setOrder
             <div className="mb-8 mt-24">
                 <h1 className="font-serif text-3xl font-bold text-brand-charcoal">Your order is on its way, {order.orderName}!</h1>
                 <p className="text-gray-500">
-                    {order.orderType === 'dine-in' && `We'll bring it to Table ${order.tableNumber}.`}
-                    {order.orderType === 'takeaway' && `We'll notify you when it's ready for pickup.`}
+                    {getOrderMessage()}
                 </p>
                  <p className="text-xs text-gray-400 mt-2">Order ID: {order.id}</p>
             </div>
@@ -103,8 +139,14 @@ const OrderTrackerScreen: React.FC<OrderTrackerScreenProps> = ({ order, setOrder
             </div>
 
             <div className="text-center">
-                <p className="text-gray-600">Estimated Arrival</p>
-                <p className="font-bold text-2xl text-brand-charcoal">10-15 minutes</p>
+                <p className="text-gray-600">
+                     {order.status === 'Served' || order.status === 'Delivered' ? 'Enjoy your meal!' : 'Estimated Time Remaining'}
+                </p>
+                <p className="font-bold text-2xl text-brand-charcoal">
+                    {timeLeft !== null 
+                        ? formatTime(timeLeft) 
+                        : (order.preparationTime ? `~${order.preparationTime} min` : 'Waiting for kitchen...')}
+                </p>
             </div>
         </div>
     );

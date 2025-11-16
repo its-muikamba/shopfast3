@@ -186,3 +186,15 @@ export const ArmchairIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => 
         <path d="M19 10V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v4"/><path d="M3 10h18"/><path d="M3 12v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6"/><path d="M5 12v-2"/><path d="M19 12v-2"/><path d="M5 18v2"/><path d="M19 18v2"/>
     </svg>
 );
+
+export const ShoppingCartOffIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <path d="M1 1l22 22"/><path d="m6.09 6.09.28 2.91L8.36 15H18l1.5-6.04"/><path d="M18.3 9H5.21"/><path d="M16 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"/><path d="M8.5 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M11 11 12 6H3l1.55 6.22"/>
+    </svg>
+);
+
+export const TruckIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <path d="M5 18H3c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h10c.6 0 1 .4 1 1v11"/><path d="M14 9h4l4 4v4c0 .6-.4 1-1 1h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>
+    </svg>
+);

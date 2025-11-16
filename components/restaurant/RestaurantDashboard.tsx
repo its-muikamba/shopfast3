@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Restaurant, StaffRole, RestaurantView, StaffMember, MenuItem, Order, ServerAlert, OrderStatus } from '../../types';
+import { Restaurant, StaffRole, RestaurantView, StaffMember, MenuItem, Order, ServerAlert, OrderStatus, RestaurantReportData } from '../../types';
 import { 
     LayoutDashboardIcon, ClipboardListIcon, UtensilsCrossedIcon, CreditCardIcon, 
-    FileTextIcon, UsersIcon, SettingsIcon, LogOutIcon, ArmchairIcon 
+    FileTextIcon, UsersIcon, SettingsIcon, LogOutIcon, ArmchairIcon, TruckIcon
 } from '../Icons';
 import RestaurantAdminOverview from './RestaurantAdminOverview';
 import ServerView from './ServerView';
@@ -11,6 +11,8 @@ import RestaurantStaffManagement from './RestaurantStaffManagement';
 import RestaurantSettings from './RestaurantSettings';
 import MenuBuilder from './MenuBuilder';
 import TableManagement from './TableManagement';
+import RestaurantReports from './RestaurantReports';
+import DeliveryManagementView from './DeliveryManagementView';
 
 
 interface NavItemProps {
@@ -42,6 +44,7 @@ interface RestaurantDashboardProps {
   menu: MenuItem[];
   liveOrders: Omit<Order, 'restaurant'>[];
   onUpdateLiveOrders: React.Dispatch<React.SetStateAction<Omit<Order, 'restaurant'>[]>>;
+  onAcceptOrder: (orderId: string, prepTime: number) => void;
   onUpdateOrderStatus: (orderId: string, newStatus: OrderStatus) => void;
   serverAlerts: ServerAlert[];
   onResolveAlert: (alertId: string) => void;
@@ -52,6 +55,7 @@ interface RestaurantDashboardProps {
   onAddMenuItem: (itemData: Omit<MenuItem, 'id'>) => void;
   onUpdateMenuItem: (item: MenuItem) => void;
   onDeleteMenuItem: (itemId: string) => void;
+  reportData?: RestaurantReportData;
   onLogout: () => void;
 }
 
@@ -62,6 +66,7 @@ const RestaurantDashboard: React.FC<RestaurantDashboardProps> = ({
     menu, 
     liveOrders,
     onUpdateLiveOrders,
+    onAcceptOrder,
     onUpdateOrderStatus,
     serverAlerts,
     onResolveAlert,
@@ -72,6 +77,7 @@ const RestaurantDashboard: React.FC<RestaurantDashboardProps> = ({
     onAddMenuItem,
     onUpdateMenuItem,
     onDeleteMenuItem,
+    reportData,
     onLogout 
 }) => {
     
@@ -86,11 +92,14 @@ const RestaurantDashboard: React.FC<RestaurantDashboardProps> = ({
     }
 
     const [currentView, setCurrentView] = useState<RestaurantView>(getInitialView(role));
+
+    const canOfferDelivery = restaurant.subscription !== 'basic';
     
     const adminNav = [
         { view: RestaurantView.DASHBOARD, label: "Dashboard", icon: LayoutDashboardIcon },
         { view: RestaurantView.ORDERS, label: "Live Floor View", icon: ClipboardListIcon },
         { view: RestaurantView.KITCHEN, label: "Kitchen View", icon: UtensilsCrossedIcon },
+        ...(canOfferDelivery ? [{ view: RestaurantView.DELIVERIES, label: "Deliveries", icon: TruckIcon }] : []),
         { view: RestaurantView.MENU_BUILDER, label: "Menu Builder", icon: FileTextIcon },
         { view: RestaurantView.TABLE_MANAGEMENT, label: "Table Management", icon: ArmchairIcon },
         { view: RestaurantView.STAFF, label: "Staff", icon: UsersIcon },
@@ -120,7 +129,16 @@ const RestaurantDashboard: React.FC<RestaurantDashboardProps> = ({
                             onUpdateOrderStatus={onUpdateOrderStatus}
                         />;
             case RestaurantView.KITCHEN:
-                 return <KitchenView orders={liveOrders} onUpdateOrders={onUpdateLiveOrders} />;
+                 return <KitchenView 
+                            orders={liveOrders} 
+                            onUpdateOrders={onUpdateLiveOrders} 
+                            onAcceptOrder={onAcceptOrder} 
+                        />;
+            case RestaurantView.DELIVERIES:
+                return <DeliveryManagementView 
+                            liveOrders={liveOrders} 
+                            onUpdateOrderStatus={onUpdateOrderStatus}
+                        />;
             case RestaurantView.MENU_BUILDER:
                 return <MenuBuilder 
                             restaurant={restaurant}
@@ -140,7 +158,7 @@ const RestaurantDashboard: React.FC<RestaurantDashboardProps> = ({
                             onDeleteStaffMember={onDeleteStaffMember}
                         />;
             case RestaurantView.REPORTS:
-                return <PlaceholderView title="Reports & Analytics" />;
+                return reportData ? <RestaurantReports data={reportData} /> : <PlaceholderView title="Reports & Analytics" />;
             case RestaurantView.SETTINGS:
                 return <RestaurantSettings restaurant={restaurant} onUpdateRestaurant={onUpdateRestaurant} />;
             case RestaurantView.CASHIER:

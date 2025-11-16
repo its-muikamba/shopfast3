@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect } from 'react';
 import { Restaurant, StaffMember, StaffRole } from '../../types';
 import { PlusIcon, EditIcon, Trash2Icon } from '../Icons';
@@ -37,8 +39,8 @@ const CreateRestaurantModal: React.FC<{
     isOpen: boolean; 
     onClose: () => void; 
     onSave: (payload: { 
-        // FIX: Add 'tables' and 'serviceRequests' to Omit to align with the implementation in App.tsx and resolve the type error.
-        restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme' | 'categories' | 'tables' | 'serviceRequests'>;
+        // FIX: Add 'deliveryConfig' to Omit to align with the implementation in App.tsx and resolve the type error.
+        restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme' | 'categories' | 'tables' | 'serviceRequests' | 'paymentSettings' | 'nextBillingDate' | 'deliveryConfig'>;
         adminData: Omit<StaffMember, 'id' | 'restaurantId' | 'role' | 'status'>;
     }) => void;
 }> = ({ isOpen, onClose, onSave }) => {
@@ -50,7 +52,6 @@ const CreateRestaurantModal: React.FC<{
         createdAt: new Date().toISOString().split('T')[0],
         imageUrl: '',
         logoUrl: '',
-        paymentSettings: defaultPaymentSettings,
     };
     const initialAdminState = {
         name: '',

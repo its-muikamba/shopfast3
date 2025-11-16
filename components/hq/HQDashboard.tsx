@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Restaurant, StaffMember } from '../../types';
+import { Restaurant, StaffMember, BillingHistory, SupportTicket, TicketStatus } from '../../types';
 import { HQView } from '../../types';
 import HQOverview from './HQOverview';
 import HQRestaurants from './HQRestaurants';
@@ -16,9 +15,12 @@ import {
 interface HQDashboardProps {
   restaurants: Restaurant[];
   staff: StaffMember[];
+  billingHistory: BillingHistory[];
+  supportTickets: SupportTicket[];
+  onUpdateTicketStatus: (ticketId: string, newStatus: TicketStatus) => void;
   onLogout: () => void;
   onAddRestaurant: (payload: { 
-    restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme'>;
+    restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme' | 'categories' | 'tables' | 'serviceRequests' | 'paymentSettings' | 'nextBillingDate'>;
     adminData: Omit<StaffMember, 'id' | 'restaurantId' | 'role' | 'status'>;
   }) => void;
   onUpdateRestaurant: (restaurant: Restaurant) => void;
@@ -33,8 +35,19 @@ const NavItem: React.FC<{ icon: React.ElementType, label: string, isActive: bool
     </button>
 );
 
-const HQDashboard: React.FC<HQDashboardProps> = ({ restaurants, staff, onLogout, onAddRestaurant, onUpdateRestaurant, onDeleteRestaurant, onAddStaffMember }) => {
-  const [currentView, setCurrentView] = useState<HQView>(HQView.OVERVIEW);
+const HQDashboard: React.FC<HQDashboardProps> = ({ 
+    restaurants, 
+    staff, 
+    billingHistory,
+    supportTickets,
+    onUpdateTicketStatus,
+    onLogout, 
+    onAddRestaurant, 
+    onUpdateRestaurant, 
+    onDeleteRestaurant, 
+    onAddStaffMember 
+}) => {
+  const [currentView, setCurrentView] = useState<HQView>(HQView.BILLING);
 
   const renderView = () => {
     switch (currentView) {
@@ -43,9 +56,9 @@ const HQDashboard: React.FC<HQDashboardProps> = ({ restaurants, staff, onLogout,
       case HQView.ADMINS:
         return <HQStaff restaurants={restaurants} staff={staff} onAddStaffMember={onAddStaffMember} />;
       case HQView.REPORTS:
-        return <HQReports />;
+        return <HQReports tickets={supportTickets} onUpdateTicketStatus={onUpdateTicketStatus} />;
       case HQView.BILLING:
-        return <HQBilling />;
+        return <HQBilling restaurants={restaurants} billingHistory={billingHistory} onUpdateRestaurant={onUpdateRestaurant} />;
       case HQView.AUDIT_LOGS:
         return <HQAuditLogs />;
       case HQView.OVERVIEW:
@@ -58,8 +71,8 @@ const HQDashboard: React.FC<HQDashboardProps> = ({ restaurants, staff, onLogout,
       { view: HQView.OVERVIEW, label: "Overview", icon: LayoutDashboardIcon },
       { view: HQView.RESTAURANTS, label: "Restaurants", icon: Building2Icon },
       { view: HQView.ADMINS, label: "Restaurant Admins", icon: UsersIcon },
-      { view: HQView.REPORTS, label: "Escalations/Reports", icon: FileTextIcon },
-      { view: HQView.BILLING, label: "Subscription/Billing", icon: CreditCardIcon },
+      { view: HQView.BILLING, label: "Subscription & Billing", icon: CreditCardIcon },
+      { view: HQView.REPORTS, label: "Support & Escalations", icon: FileTextIcon },
       { view: HQView.AUDIT_LOGS, label: "Audit Logs", icon: HistoryIcon },
   ];
 

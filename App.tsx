@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Restaurant, CartItem, Order, StaffRole, StaffMember, MenuItem, OrderContext, ServerAlert, OrderStatus } from './types';
-import { RESTAURANTS, MENUS, STAFF_MEMBERS, INITIAL_ACTIVE_ORDERS } from './constants';
+import { View, Restaurant, CartItem, Order, StaffRole, StaffMember, MenuItem, OrderContext, ServerAlert, OrderStatus, RestaurantReportData, BillingHistory, SupportTicket, TicketStatus } from './types';
+import { RESTAURANTS, MENUS, STAFF_MEMBERS, INITIAL_ACTIVE_ORDERS, RESTAURANT_REPORTS, BILLING_HISTORY, SUPPORT_TICKETS } from './constants';
 import HomeScreen from './components/HomeScreen';
 import MenuScreen from './components/MenuScreen';
 import OrderTrackerScreen from './components/OrderTrackerScreen';
@@ -14,6 +13,22 @@ import RestaurantDashboard from './components/restaurant/RestaurantDashboard';
 import OrderContextModal from './components/OrderContextModal';
 import FloatingActionButton from './components/FloatingActionButton';
 import ServiceRequestModal from './components/ServiceRequestModal';
+
+// Keys for localStorage
+const LIVE_ORDERS_STORAGE_KEY = 'shopfast_liveOrders';
+const SERVER_ALERTS_STORAGE_KEY = 'shopfast_serverAlerts';
+
+// Helper to safely parse JSON from localStorage
+const getFromStorage = <T,>(key: string, fallback: T): T => {
+    try {
+        const item = window.localStorage.getItem(key);
+        return item ? JSON.parse(item) : fallback;
+    } catch (error) {
+        console.error(`Error reading from localStorage key “${key}”:`, error);
+        return fallback;
+    }
+};
+
 
 const DinerApp: React.FC<{
   restaurants: Restaurant[];
@@ -32,7 +47,6 @@ const DinerApp: React.FC<{
   handlePaymentSuccess: () => void;
   resetApp: () => void;
   onCallServer: (request: string) => void;
-  // FIX: Add orderContext to DinerApp props to resolve 'Cannot find name' error.
   orderContext: OrderContext | null;
 }> = (props) => {
   const {
@@ -40,7 +54,6 @@ const DinerApp: React.FC<{
     handleAddToCart, handleUpdateCartQuantity, handlePlaceOrder, 
     handleBackToHome, order, setOrder, setView, handlePaymentSuccess, resetApp,
     onCallServer,
-    // FIX: Destructure orderContext from props.
     orderContext
   } = props;
 
@@ -55,6 +68,7 @@ const DinerApp: React.FC<{
               restaurant={selectedRestaurant}
               menu={menu}
               cart={cart}
+              orderContext={orderContext}
               onAddToCart={handleAddToCart}
               onUpdateCartQuantity={handleUpdateCartQuantity}
               onPlaceOrder={handlePlaceOrder}
@@ -87,7 +101,7 @@ const DinerApp: React.FC<{
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans text-brand-charcoal md:max-w-md md:mx-auto md:shadow-2xl md:my-4 md:rounded-lg">
+    <div className="min-h-screen bg-white font-sans text-brand-charcoal w-full max-w-7xl mx-auto shadow-2xl my-4 rounded-lg">
       <main className="relative">{renderContent()}</main>
       <footer className="text-center p-4 text-xs text-gray-400">
         <div className="flex justify-center items-center gap-2 mb-2">
@@ -132,6 +146,10 @@ const App: React.FC = () => {
   const [restaurants, setRestaurants] = useState<Restaurant[]>(RESTAURANTS);
   const [menus, setMenus] = useState<Record<string, MenuItem[]>>(MENUS);
   const [appMode, setAppMode] = useState<AppMode>(getAppModeFromHash());
+  const [restaurantReports, setRestaurantReports] = useState<Record<string, RestaurantReportData>>(RESTAURANT_REPORTS);
+  const [billingHistory, setBillingHistory] = useState<BillingHistory[]>(BILLING_HISTORY);
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(SUPPORT_TICKETS);
+
 
   // App Routing
   const handleHashChange = useCallback(() => {
@@ -160,29 +178,54 @@ const App: React.FC = () => {
   // Restaurant App State
   const [loggedInRestaurant, setLoggedInRestaurant] = useState<Restaurant | null>(null);
   const [loggedInRole, setLoggedInRole] = useState<StaffRole | null>(null);
-  const [liveOrders, setLiveOrders] = useState<Omit<Order, 'restaurant'>[]>(INITIAL_ACTIVE_ORDERS);
-  const [serverAlerts, setServerAlerts] = useState<ServerAlert[]>([]);
+  
+  // REAL-TIME STATE (with cross-tab sync)
+  const [liveOrders, setLiveOrders] = useState<Omit<Order, 'restaurant'>[]>(() => getFromStorage(LIVE_ORDERS_STORAGE_KEY, INITIAL_ACTIVE_ORDERS));
+  const [serverAlerts, setServerAlerts] = useState<ServerAlert[]>(() => getFromStorage(SERVER_ALERTS_STORAGE_KEY, []));
 
-  // Simulate new orders for the restaurant dashboard
+  // Cross-tab synchronization effect
   useEffect(() => {
-    const interval = setInterval(() => {
-      setLiveOrders(prevOrders => {
-        if (prevOrders.length > 20) return prevOrders; // Cap the number of orders
-        const newMockOrder: Omit<Order, 'restaurant'> = {
-          id: `ORD-${Date.now()}`,
-          tableNumber: Math.floor(Math.random() * 12) + 1,
-          items: [{ ...MENUS.r1[Math.floor(Math.random() * 2)], quantity: 1 }, { ...MENUS.r1[Math.floor(Math.random() * 3) + 2], quantity: Math.floor(Math.random() * 2) + 1 }],
-          total: parseFloat((Math.random() * 50 + 10).toFixed(2)),
-          status: 'Received',
-          orderType: 'dine-in',
-          orderName: ['Alice', 'Bob', 'Charlie', 'David', 'Eve'][Math.floor(Math.random() * 5)],
-        };
-        return [newMockOrder, ...prevOrders];
-      });
-    }, 12000); // New order every 12 seconds
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === LIVE_ORDERS_STORAGE_KEY && e.newValue) {
+        setLiveOrders(JSON.parse(e.newValue));
+      }
+      if (e.key === SERVER_ALERTS_STORAGE_KEY && e.newValue) {
+        setServerAlerts(JSON.parse(e.newValue));
+      }
+    };
 
-    return () => clearInterval(interval);
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
+  
+  // Custom setters that update both state and localStorage
+  const updateLiveOrders = useCallback((updater: React.SetStateAction<Omit<Order, 'restaurant'>[]>) => {
+    setLiveOrders(prevOrders => {
+      const newOrders = typeof updater === 'function' ? updater(prevOrders) : updater;
+      localStorage.setItem(LIVE_ORDERS_STORAGE_KEY, JSON.stringify(newOrders));
+      // Dispatch a storage event to notify the current tab as well
+      window.dispatchEvent(new StorageEvent('storage', {
+          key: LIVE_ORDERS_STORAGE_KEY,
+          newValue: JSON.stringify(newOrders),
+      }));
+      return newOrders;
+    });
+  }, []);
+
+  const updateServerAlerts = useCallback((updater: React.SetStateAction<ServerAlert[]>) => {
+    setServerAlerts(prevAlerts => {
+      const newAlerts = typeof updater === 'function' ? updater(prevAlerts) : updater;
+      localStorage.setItem(SERVER_ALERTS_STORAGE_KEY, JSON.stringify(newAlerts));
+       window.dispatchEvent(new StorageEvent('storage', {
+          key: SERVER_ALERTS_STORAGE_KEY,
+          newValue: JSON.stringify(newAlerts),
+      }));
+      return newAlerts;
+    });
+  }, []);
+
 
   // Diner App Logic
   const handleSelectRestaurant = (restaurant: Restaurant) => {
@@ -223,23 +266,61 @@ const App: React.FC = () => {
 
   const handlePlaceOrder = () => {
     if (cart.length === 0 || !selectedRestaurant || !orderContext) return;
-    const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    
+    let total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+    // Add delivery fee if applicable
+    if (orderContext.orderType === 'delivery' && selectedRestaurant.deliveryConfig?.enabledByAdmin) {
+        total += selectedRestaurant.deliveryConfig.deliveryFee;
+    }
+
     const newOrder: Order = {
       id: `ORD-${Date.now()}`,
       restaurant: selectedRestaurant,
       items: cart,
       total,
-      status: 'Received',
+      status: 'Pending', // New orders start as Pending
       ...orderContext,
     };
+    
+    // Set order for the current diner's view
     setOrder(newOrder);
     setCart([]);
     setView(View.TRACKING);
+    
+    // Add the order to the live, cross-tab state for the restaurant dashboard
+    const newLiveOrder: Omit<Order, 'restaurant'> = {
+        id: newOrder.id,
+        items: newOrder.items,
+        total: newOrder.total,
+        status: newOrder.status,
+        ...orderContext,
+    };
+    updateLiveOrders(prev => [newLiveOrder, ...prev]);
+
+    // Increment order count for the table if it's a dine-in order
+    if (newOrder.orderType === 'dine-in' && newOrder.tableNumber) {
+      setRestaurants(prev => prev.map(r => {
+        if (r.id === selectedRestaurant.id) {
+          const updatedTables = r.tables.map(t =>
+            t.number === newOrder.tableNumber
+              ? { ...t, orderCount: t.orderCount + 1 }
+              : t
+          );
+          return { ...r, tables: updatedTables };
+        }
+        return r;
+      }));
+    }
   };
   
   const handlePaymentSuccess = () => {
       if (!order) return;
-      setOrder({...order, status: 'Paid'});
+      const finalStatus: OrderStatus = order.orderType === 'delivery' ? 'Delivered' : 'Verified';
+      const updatedOrder = {...order, status: 'Paid' as OrderStatus}; // Show QR screen first
+      setOrder(updatedOrder);
+      // Update the status in the live orders list as well
+      updateLiveOrders(prev => prev.map(o => o.id === order.id ? {...o, status: finalStatus} : o));
   };
   
   const resetApp = () => {
@@ -271,11 +352,11 @@ const App: React.FC = () => {
         request: request,
         timestamp: Date.now(),
     };
-    setServerAlerts(prev => [...prev, newAlert]);
+    updateServerAlerts(prev => [...prev, newAlert]);
   };
 
   const handleResolveAlert = (alertId: string) => {
-    setServerAlerts(prev => prev.filter(a => a.id !== alertId));
+    updateServerAlerts(prev => prev.filter(a => a.id !== alertId));
   };
 
 
@@ -284,7 +365,7 @@ const App: React.FC = () => {
   const handleHqLogout = () => {
     setIsHqLoggedIn(false);
   };
-  const handleAddRestaurant = (payload: { restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme' | 'categories' | 'tables' | 'serviceRequests' | 'paymentSettings'>, adminData: Omit<StaffMember, 'id' | 'restaurantId' | 'role' | 'status'>}) => {
+  const handleAddRestaurant = (payload: { restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme' | 'categories' | 'tables' | 'serviceRequests' | 'paymentSettings' | 'nextBillingDate' | 'deliveryConfig'>, adminData: Omit<StaffMember, 'id' | 'restaurantId' | 'role' | 'status'>}) => {
     const { restaurantData, adminData } = payload;
     const newRestaurantId = `r${Date.now()}`;
     
@@ -293,6 +374,7 @@ const App: React.FC = () => {
       id: newRestaurantId,
       rating: 0,
       distance: 'new',
+      nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
       categories: ['Starters', 'Mains', 'Desserts', 'Drinks'],
       tables: [],
       serviceRequests: [],
@@ -300,6 +382,12 @@ const App: React.FC = () => {
         stripe: { enabled: false },
         mpesa: { enabled: false },
         pesapal: { enabled: false }
+      },
+      deliveryConfig: {
+        enabledByAdmin: false,
+        deliveryFee: 0,
+        deliveryRadius: 0,
+        estimatedTime: 0,
       },
       theme: {
           welcomeMessage: `Welcome to ${restaurantData.name}!`,
@@ -381,6 +469,10 @@ const App: React.FC = () => {
       [restaurantId]: prevMenus[restaurantId].filter(item => item.id !== itemId),
     }));
   };
+
+  const handleUpdateTicketStatus = (ticketId: string, newStatus: TicketStatus) => {
+    setSupportTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: newStatus } : t));
+  };
   
   // Restaurant App Logic
   const handleRestaurantLogin = (restaurantId: string, name: string, pin: string) => {
@@ -411,8 +503,16 @@ const App: React.FC = () => {
     setLoggedInRole(null);
   };
 
+  const handleAcceptOrder = (orderId: string, prepTime: number) => {
+    updateLiveOrders(prev => prev.map(o => 
+        o.id === orderId 
+        ? { ...o, status: 'Received', preparationTime: prepTime, acceptedAt: Date.now() } 
+        : o
+    ));
+  };
+  
   const handleUpdateOrderStatus = (orderId: string, newStatus: OrderStatus) => {
-    setLiveOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+    updateLiveOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
   };
 
 
@@ -425,6 +525,9 @@ const App: React.FC = () => {
         return <HQDashboard 
                   restaurants={restaurants} 
                   staff={staff}
+                  billingHistory={billingHistory}
+                  supportTickets={supportTickets}
+                  onUpdateTicketStatus={handleUpdateTicketStatus}
                   onLogout={handleHqLogout}
                   onAddRestaurant={handleAddRestaurant} 
                   onUpdateRestaurant={handleUpdateRestaurant}
@@ -441,7 +544,8 @@ const App: React.FC = () => {
                   staff={staff}
                   menu={menus[loggedInRestaurant.id] || []}
                   liveOrders={liveOrders}
-                  onUpdateLiveOrders={setLiveOrders}
+                  onUpdateLiveOrders={updateLiveOrders}
+                  onAcceptOrder={handleAcceptOrder}
                   onUpdateOrderStatus={handleUpdateOrderStatus}
                   serverAlerts={serverAlerts.filter(a => a.restaurantId === loggedInRestaurant.id)}
                   onResolveAlert={handleResolveAlert}
@@ -452,6 +556,7 @@ const App: React.FC = () => {
                   onAddMenuItem={(item) => handleAddMenuItem(loggedInRestaurant.id, item)}
                   onUpdateMenuItem={(item) => handleUpdateMenuItem(loggedInRestaurant.id, item)}
                   onDeleteMenuItem={(itemId) => handleDeleteMenuItem(loggedInRestaurant.id, itemId)}
+                  reportData={restaurantReports[loggedInRestaurant.id]}
                   onLogout={handleRestaurantLogout} 
                />;
       case 'diner':
@@ -462,7 +567,6 @@ const App: React.FC = () => {
           view, cart, handleAddToCart, handleUpdateCartQuantity, handlePlaceOrder, 
           handleBackToHome, order, setOrder, setView, handlePaymentSuccess, resetApp,
           onCallServer: handleCallServer,
-          // FIX: Pass orderContext to DinerApp.
           orderContext,
         };
         return (
@@ -484,7 +588,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="bg-gray-100">
+    <div>
       {renderApp()}
     </div>
   );

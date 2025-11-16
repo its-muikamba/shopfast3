@@ -1,4 +1,4 @@
-import { Restaurant, MenuItem, HQMetrics, AuditLog, StaffMember, StaffRole, Order } from './types';
+import { Restaurant, MenuItem, HQMetrics, AuditLog, StaffMember, StaffRole, Order, RestaurantReportData, BillingHistory, SupportTicket } from './types';
 
 export const defaultPaymentSettings = {
     stripe: { enabled: false, publicKey: '', secretKey: '' },
@@ -11,6 +11,7 @@ const defaultTables = Array.from({ length: 12 }, (_, i) => ({
     number: i + 1,
     capacity: (i % 3 === 0) ? 6 : (i % 2 === 0 ? 4 : 2),
     status: 'available' as 'available' | 'occupied' | 'needs-attention',
+    orderCount: 0,
 }));
 
 const defaultServiceRequests = [
@@ -31,6 +32,7 @@ export const RESTAURANTS: Restaurant[] = [
     status: 'active',
     createdAt: '2023-10-26',
     subscription: 'premium',
+    nextBillingDate: '2024-07-26',
     categories: ['Starters', 'Mains', 'Desserts', 'Drinks'],
     tables: defaultTables,
     serviceRequests: defaultServiceRequests,
@@ -38,6 +40,12 @@ export const RESTAURANTS: Restaurant[] = [
         stripe: { enabled: true, publicKey: 'pk_test_demo', secretKey: 'sk_test_demo' },
         mpesa: { enabled: true, shortCode: '123456', consumerKey: 'mpesa_key', consumerSecret: 'mpesa_secret' },
         pesapal: { enabled: false, consumerKey: '', consumerSecret: '' }
+    },
+    deliveryConfig: {
+        enabledByAdmin: true,
+        deliveryFee: 5.00,
+        deliveryRadius: 5,
+        estimatedTime: 30,
     },
     theme: {
       welcomeMessage: 'Experience the taste of authentic Italian cuisine!',
@@ -60,6 +68,7 @@ export const RESTAURANTS: Restaurant[] = [
     status: 'active',
     createdAt: '2023-09-15',
     subscription: 'premium',
+    nextBillingDate: '2024-07-15',
     categories: ['Appetizers', 'Main Courses', 'Sushi', 'Beverages'],
     tables: defaultTables,
     serviceRequests: defaultServiceRequests,
@@ -67,6 +76,12 @@ export const RESTAURANTS: Restaurant[] = [
         stripe: { enabled: true, publicKey: 'pk_test_demo2', secretKey: 'sk_test_demo2' },
         mpesa: { enabled: false, shortCode: '', consumerKey: '', consumerSecret: '' },
         pesapal: { enabled: false, consumerKey: '', consumerSecret: '' }
+    },
+    deliveryConfig: {
+        enabledByAdmin: false, // Admin has not enabled it yet
+        deliveryFee: 4.50,
+        deliveryRadius: 3,
+        estimatedTime: 25,
     },
     theme: {
       welcomeMessage: 'A culinary journey through Asia.',
@@ -88,11 +103,18 @@ export const RESTAURANTS: Restaurant[] = [
     logoUrl: 'https://picsum.photos/seed/logo3/200/200',
     status: 'disabled',
     createdAt: '2023-11-01',
-    subscription: 'basic',
+    subscription: 'basic', // Basic tier does not get delivery
+    nextBillingDate: '2024-08-01',
     categories: ['Starters', 'Burgers & Sandwiches', 'Desserts', 'Drinks'],
     tables: defaultTables,
     serviceRequests: defaultServiceRequests,
     paymentSettings: defaultPaymentSettings,
+    deliveryConfig: {
+        enabledByAdmin: false,
+        deliveryFee: 0,
+        deliveryRadius: 0,
+        estimatedTime: 0,
+    },
     theme: {
       welcomeMessage: 'Hearty meals, just like home.',
       primaryColor: '#b91c1c',
@@ -114,10 +136,17 @@ export const RESTAURANTS: Restaurant[] = [
     status: 'active',
     createdAt: '2023-08-05',
     subscription: 'enterprise',
+    nextBillingDate: '2024-07-05',
     categories: ['Oysters & Raw Bar', 'Main Catch', 'Sides', 'Wine List'],
     tables: defaultTables,
     serviceRequests: defaultServiceRequests,
     paymentSettings: defaultPaymentSettings,
+    deliveryConfig: {
+        enabledByAdmin: true,
+        deliveryFee: 7.50,
+        deliveryRadius: 10,
+        estimatedTime: 40,
+    },
     theme: {
       welcomeMessage: 'The freshest catch in town, served daily.',
       primaryColor: '#58A9E0',
@@ -183,8 +212,110 @@ export const STAFF_MEMBERS: StaffMember[] = [
 ];
 
 export const INITIAL_ACTIVE_ORDERS: Omit<Order, 'restaurant'>[] = [
-    { id: 'ORD-101', tableNumber: 5, items: [{...MENUS.r1[0], quantity: 1}, {...MENUS.r1[2], quantity: 1}], total: 26.50, status: 'Received', orderType: 'dine-in', orderName: 'Gilbert' },
-    { id: 'ORD-102', tableNumber: 12, items: [{...MENUS.r1[1], quantity: 2}], total: 24.00, status: 'Received', orderType: 'dine-in', orderName: 'Xavier' },
-    { id: 'ORD-103', tableNumber: 8, items: [{...MENUS.r1[3], quantity: 1}, {...MENUS.r1[6], quantity: 2}], total: 29.00, status: 'Preparing', orderType: 'dine-in', orderName: 'Diana' },
-    { id: 'ORD-104', tableNumber: 3, items: [{...MENUS.r1[4], quantity: 1}], total: 9.00, status: 'On Route', orderType: 'dine-in', orderName: 'Charles' },
+    { id: 'ORD-101', tableNumber: 5, items: [{...MENUS.r1[0], quantity: 1}, {...MENUS.r1[2], quantity: 1}], total: 26.50, status: 'Pending', orderType: 'dine-in', orderName: 'Gilbert' },
+    { id: 'ORD-102', tableNumber: 12, items: [{...MENUS.r1[1], quantity: 2}], total: 24.00, status: 'Pending', orderType: 'dine-in', orderName: 'Xavier' },
+    { id: 'ORD-103', tableNumber: 8, items: [{...MENUS.r1[3], quantity: 1}, {...MENUS.r1[6], quantity: 2}], total: 29.00, status: 'Preparing', orderType: 'dine-in', orderName: 'Diana', acceptedAt: Date.now() - (1000 * 60 * 3), preparationTime: 15 },
+    { id: 'ORD-104', tableNumber: 3, items: [{...MENUS.r1[4], quantity: 1}], total: 9.00, status: 'On Route', orderType: 'dine-in', orderName: 'Charles', acceptedAt: Date.now() - (1000 * 60 * 10), preparationTime: 10 },
+];
+
+export const RESTAURANT_REPORTS: Record<string, RestaurantReportData> = {
+    'r1': {
+        metrics: {
+            totalRevenue: 4520.50,
+            totalOrders: 180,
+            totalCustomers: 155,
+            averageOrderValue: 25.11,
+            abandonedCarts: 25,
+            abandonedCartValue: 312.75,
+        },
+        hourlyActivity: [
+            { hour: '11am', orders: 15 },
+            { hour: '12pm', orders: 25 },
+            { hour: '1pm', orders: 30 },
+            { hour: '2pm', orders: 20 },
+            { hour: '6pm', orders: 28 },
+            { hour: '7pm', orders: 40 },
+            { hour: '8pm', orders: 22 },
+        ],
+        popularItems: [
+            { id: 'm1-m1', name: 'Spaghetti Carbonara', orderCount: 75 },
+            { id: 'm1-m2', name: 'Margherita Pizza', orderCount: 62 },
+            { id: 'm1-s2', name: 'Calamari Fritti', orderCount: 55 },
+            { id: 'm1-d1', name: 'Tiramisu', orderCount: 40 },
+            { id: 'm1-s1', name: 'Bruschetta', orderCount: 35 },
+        ]
+    },
+    'r2': {
+        metrics: {
+            totalRevenue: 3890.00,
+            totalOrders: 150,
+            totalCustomers: 120,
+            averageOrderValue: 25.93,
+            abandonedCarts: 18,
+            abandonedCartValue: 240.50,
+        },
+        hourlyActivity: [
+            { hour: '12pm', orders: 28 },
+            { hour: '1pm', orders: 35 },
+            { hour: '6pm', orders: 32 },
+            { hour: '7pm', orders: 45 },
+            { hour: '8pm', orders: 10 },
+        ],
+        popularItems: [
+            { id: 'm2-m1', name: 'Pad Thai', orderCount: 88 },
+            { id: 'm2-s1', name: 'Spring Rolls', orderCount: 70 },
+            { id: 'm2-k1', name: 'Thai Iced Tea', orderCount: 65 },
+            { id: 'm2-d1', name: 'Mango Sticky Rice', orderCount: 50 },
+        ]
+    }
+};
+
+export const BILLING_HISTORY: BillingHistory[] = [
+    { id: 'bh1', restaurantId: 'r1', date: '2024-06-26', amount: 99.00, status: 'paid', invoiceId: 'INV-001' },
+    { id: 'bh2', restaurantId: 'r1', date: '2024-05-26', amount: 99.00, status: 'paid', invoiceId: 'INV-002' },
+    { id: 'bh3', restaurantId: 'r2', date: '2024-06-15', amount: 99.00, status: 'paid', invoiceId: 'INV-003' },
+    { id: 'bh4', restaurantId: 'r3', date: '2024-07-01', amount: 49.00, status: 'failed', invoiceId: 'INV-004' },
+    { id: 'bh5', restaurantId: 'r4', date: '2024-06-05', amount: 199.00, status: 'paid', invoiceId: 'INV-005' },
+];
+
+export const SUPPORT_TICKETS: SupportTicket[] = [
+    {
+        id: 'tkt1',
+        restaurantId: 'r2',
+        restaurantName: 'Emerald Garden',
+        subject: 'Payment gateway issue',
+        priority: 'high',
+        status: 'open',
+        createdAt: '2024-07-02 10:00 AM',
+        conversation: [
+            { author: 'Emerald Garden', timestamp: '2024-07-02 10:00 AM', message: 'Our Stripe connection is failing. Can you please check?' },
+        ]
+    },
+    {
+        id: 'tkt2',
+        restaurantId: 'r1',
+        restaurantName: 'The Golden Spoon',
+        subject: 'How to add a new menu category?',
+        priority: 'low',
+        status: 'in-progress',
+        createdAt: '2024-07-01 03:20 PM',
+        conversation: [
+            { author: 'The Golden Spoon', timestamp: '2024-07-01 03:20 PM', message: 'We are trying to add a "Specials" category but cannot find the option.' },
+            { author: 'HQ Support', timestamp: '2024-07-01 04:00 PM', message: 'Hi there, you can manage this from the "Menu Builder" section. I am assigning this to a support agent to guide you.' },
+        ]
+    },
+    {
+        id: 'tkt3',
+        restaurantId: 'r4',
+        restaurantName: 'Aqua Blue',
+        subject: 'QR Code not downloading',
+        priority: 'medium',
+        status: 'resolved',
+        createdAt: '2024-06-30 11:00 AM',
+        conversation: [
+            { author: 'Aqua Blue', timestamp: '2024-06-30 11:00 AM', message: 'When we click "Download QR" for our tables, nothing happens.' },
+            { author: 'HQ Support', timestamp: '2024-06-30 11:30 AM', message: 'We have identified the issue and pushed a fix. Please try again now.' },
+            { author: 'Aqua Blue', timestamp: '2024-06-30 11:35 AM', message: 'It works! Thank you.' },
+        ]
+    },
 ];

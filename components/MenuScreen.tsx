@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Restaurant, MenuItem, CartItem, AiRecommendation } from '../types';
+import { Restaurant, MenuItem, CartItem, AiRecommendation, OrderContext } from '../types';
 import getMenuRecommendations from '../services/geminiService';
 import { ChevronLeftIcon, ShoppingCartIcon, SparklesIcon, XIcon, PlusIcon, MinusIcon, CheckCircleIcon } from './Icons';
 
@@ -56,24 +56,35 @@ const Cart: React.FC<{
     isOpen: boolean;
     onClose: () => void;
     cart: CartItem[];
-    onUpdateQuantity: (itemId: string, newQuantity: number) => void;
+    onUpdateCartQuantity: (itemId: string, newQuantity: number) => void;
     onPlaceOrder: () => void;
-    restaurantName: string;
-}> = ({ isOpen, onClose, cart, onUpdateQuantity, onPlaceOrder, restaurantName }) => {
-    const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    restaurant: Restaurant;
+    orderContext: OrderContext | null;
+}> = ({ isOpen, onClose, cart, onUpdateCartQuantity, onPlaceOrder, restaurant, orderContext }) => {
+    
+    const subtotal = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0), [cart]);
+    
+    const deliveryFee = useMemo(() => {
+        if (orderContext?.orderType === 'delivery' && restaurant.deliveryConfig?.enabledByAdmin) {
+            return restaurant.deliveryConfig.deliveryFee;
+        }
+        return 0;
+    }, [orderContext, restaurant]);
+
+    const total = subtotal + deliveryFee;
 
     if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
-            <div className="bg-white w-full rounded-t-3xl p-6 flex flex-col max-h-[80vh]">
+            <div className="bg-white w-full max-w-7xl mx-auto rounded-t-3xl p-6 flex flex-col max-h-[80vh]">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="font-serif text-2xl font-bold">Your Order</h2>
                     <button onClick={onClose} className="text-gray-500 hover:text-black">
                         <XIcon className="w-6 h-6" />
                     </button>
                 </div>
-                <p className="text-gray-600 mb-4">from <span className="font-bold">{restaurantName}</span></p>
+                <p className="text-gray-600 mb-4">from <span className="font-bold">{restaurant.name}</span></p>
                 
                 {cart.length === 0 ? (
                     <p className="text-center text-gray-500 py-12">Your cart is empty.</p>
@@ -87,9 +98,9 @@ const Cart: React.FC<{
                                     <p className="text-sm text-gray-500">${item.price.toFixed(2)}</p>
                                 </div>
                                 <div className="flex items-center gap-2 border border-gray-200 rounded-full p-1">
-                                    <button onClick={() => onUpdateQuantity(item.id, item.quantity - 1)} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"><MinusIcon className="w-4 h-4" /></button>
+                                    <button onClick={() => onUpdateCartQuantity(item.id, item.quantity - 1)} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"><MinusIcon className="w-4 h-4" /></button>
                                     <span className="font-bold w-6 text-center">{item.quantity}</span>
-                                    <button onClick={() => onUpdateQuantity(item.id, item.quantity + 1)} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"><PlusIcon className="w-4 h-4" /></button>
+                                    <button onClick={() => onUpdateCartQuantity(item.id, item.quantity + 1)} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"><PlusIcon className="w-4 h-4" /></button>
                                 </div>
                             </div>
                         ))}
@@ -98,6 +109,18 @@ const Cart: React.FC<{
 
                 {cart.length > 0 && (
                     <div className="mt-6 border-t pt-4">
+                        <div className="space-y-1 text-sm mb-4">
+                            <div className="flex justify-between">
+                                <span>Subtotal</span>
+                                <span>${subtotal.toFixed(2)}</span>
+                            </div>
+                            {deliveryFee > 0 && (
+                                <div className="flex justify-between">
+                                    <span>Delivery Fee</span>
+                                    <span>${deliveryFee.toFixed(2)}</span>
+                                </div>
+                            )}
+                        </div>
                         <div className="flex justify-between items-center font-bold text-lg mb-4">
                             <span>Total</span>
                             <span>${total.toFixed(2)}</span>
@@ -160,13 +183,14 @@ interface MenuScreenProps {
   restaurant: Restaurant;
   menu: MenuItem[];
   cart: CartItem[];
+  orderContext: OrderContext | null;
   onAddToCart: (item: MenuItem) => void;
   onUpdateCartQuantity: (itemId: string, newQuantity: number) => void;
   onPlaceOrder: () => void;
   onBack: () => void;
 }
 
-const MenuScreen: React.FC<MenuScreenProps> = ({ restaurant, menu, cart, onAddToCart, onUpdateCartQuantity, onPlaceOrder, onBack }) => {
+const MenuScreen: React.FC<MenuScreenProps> = ({ restaurant, menu, cart, orderContext, onAddToCart, onUpdateCartQuantity, onPlaceOrder, onBack }) => {
   const [activeCategory, setActiveCategory] = useState<string>(restaurant.categories[0] || '');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isRecoModalOpen, setIsRecoModalOpen] = useState(false);
@@ -196,15 +220,15 @@ const MenuScreen: React.FC<MenuScreenProps> = ({ restaurant, menu, cart, onAddTo
 
   return (
     <div className="bg-gray-50 min-h-screen pb-24">
-      <div className="relative h-48">
+      <div className="relative h-48 md:h-64">
         <img src={restaurant.imageUrl} alt={restaurant.name} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-black bg-opacity-40"></div>
         <button onClick={onBack} className="absolute top-4 left-4 bg-white bg-opacity-80 rounded-full p-2 text-brand-charcoal">
             <ChevronLeftIcon className="w-6 h-6" />
         </button>
-        <div className="absolute bottom-0 left-0 p-4 flex items-center gap-4">
-            <img src={restaurant.logoUrl} alt={`${restaurant.name} logo`} className="w-16 h-16 rounded-full border-4 border-white object-cover shadow-lg" />
-            <h1 className="font-serif text-3xl font-bold text-white shadow-text">{restaurant.name}</h1>
+        <div className="absolute bottom-0 left-0 p-4 md:p-6 flex items-center gap-4">
+            <img src={restaurant.logoUrl} alt={`${restaurant.name} logo`} className="w-16 h-16 md:w-24 md:h-24 rounded-full border-4 border-white object-cover shadow-lg" />
+            <h1 className="font-serif text-3xl md:text-5xl font-bold text-white shadow-text">{restaurant.name}</h1>
         </div>
       </div>
       
@@ -248,28 +272,39 @@ const MenuScreen: React.FC<MenuScreenProps> = ({ restaurant, menu, cart, onAddTo
         </div>
       </div>
       
-      <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filteredMenu.map(item => <MenuItemCard key={item.id} item={item} onAdd={() => onAddToCart(item)} primaryColor={primaryColor} />)}
       </div>
 
       {cartItemCount > 0 && (
-         <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-gray-50 to-transparent md:max-w-md md:mx-auto md:left-auto md:right-auto md:bottom-4 md:rounded-b-lg">
-          <button 
-            onClick={() => setIsCartOpen(true)}
-            style={{ backgroundColor: primaryColor }}
-            className="w-full text-white font-bold py-4 px-6 rounded-full shadow-lg flex items-center justify-between transform hover:scale-105 transition-transform duration-300"
-        >
-             <div className="flex items-center gap-2">
-                <ShoppingCartIcon className="w-6 h-6" />
-                <span>View Order</span>
-             </div>
-            <span className="bg-white font-bold rounded-full w-8 h-8 flex items-center justify-center" style={{ color: primaryColor }}>{cartItemCount}</span>
-          </button>
-      </div>
+         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-7xl px-4">
+            <div className="max-w-md mx-auto">
+                <div className="p-4 bg-gradient-to-t from-gray-50 to-transparent">
+                  <button 
+                    onClick={() => setIsCartOpen(true)}
+                    style={{ backgroundColor: primaryColor }}
+                    className="w-full text-white font-bold py-4 px-6 rounded-full shadow-lg flex items-center justify-between transform hover:scale-105 transition-transform duration-300"
+                  >
+                     <div className="flex items-center gap-2">
+                        <ShoppingCartIcon className="w-6 h-6" />
+                        <span>View Order</span>
+                     </div>
+                    <span className="bg-white font-bold rounded-full w-8 h-8 flex items-center justify-center" style={{ color: primaryColor }}>{cartItemCount}</span>
+                  </button>
+              </div>
+            </div>
+        </div>
       )}
 
-      {/* FIX: Corrected prop name from onUpdateQuantity to onUpdateCartQuantity */}
-      <Cart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} cart={cart} onUpdateQuantity={onUpdateCartQuantity} onPlaceOrder={() => { onPlaceOrder(); setIsCartOpen(false); }} restaurantName={restaurant.name} />
+      <Cart 
+        isOpen={isCartOpen} 
+        onClose={() => setIsCartOpen(false)} 
+        cart={cart} 
+        onUpdateCartQuantity={onUpdateCartQuantity} 
+        onPlaceOrder={() => { onPlaceOrder(); setIsCartOpen(false); }} 
+        restaurant={restaurant}
+        orderContext={orderContext}
+       />
       <RecommendationModal isOpen={isRecoModalOpen} onClose={() => setIsRecoModalOpen(false)} recommendation={recommendation} isLoading={isRecoLoading} primaryColor={primaryColor} />
     </div>
   );

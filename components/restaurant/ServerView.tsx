@@ -1,15 +1,18 @@
 import React, { useMemo } from 'react';
 import { Order, OrderStatus, Table, ServerAlert, Restaurant } from '../../types';
-import { ArmchairIcon, CheckCircleIcon } from '../Icons';
+import { ArmchairIcon, CheckCircleIcon, ShoppingCartIcon } from '../Icons';
 
 const statusColors: Record<OrderStatus, { bg: string, text: string, border: string }> = {
+    'Pending': { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-500' },
     'Received': { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-500' },
     'Preparing': { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-500' },
     'On Route': { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-500' },
+    // FIX: Add missing 'Out for Delivery' and 'Delivered' statuses to align with the OrderStatus type.
+    'Out for Delivery': { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-500' },
     'Served': { bg: 'bg-emerald-100', text: 'text-emerald-800', border: 'border-emerald-500' },
+    'Delivered': { bg: 'bg-emerald-100', text: 'text-emerald-800', border: 'border-emerald-500' },
     'Paid': { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-500' },
     'Verified': { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-500' },
-    // FIX: Remove 'Pending' from statusColors as it's not a valid OrderStatus.
 };
 
 const TableRepresentation: React.FC<{
@@ -42,9 +45,15 @@ const TableRepresentation: React.FC<{
                     <h3 className="font-bold text-lg text-brand-charcoal">Table {table.number}</h3>
                     <span className="text-xs font-semibold text-gray-600">{statusText}</span>
                 </div>
-                <div className="flex items-center text-sm text-gray-500">
-                    <ArmchairIcon className="w-4 h-4 mr-1" />
-                    <span>{table.capacity} seats</span>
+                <div className="flex items-center text-sm text-gray-500 gap-3">
+                    <div className="flex items-center">
+                        <ArmchairIcon className="w-4 h-4 mr-1" />
+                        <span>{table.capacity} seats</span>
+                    </div>
+                    <div className="flex items-center">
+                        <ShoppingCartIcon className="w-4 h-4 mr-1" />
+                        <span>{table.orderCount} orders</span>
+                    </div>
                 </div>
             </div>
             <div className="mt-2 border-t pt-2 space-y-2">

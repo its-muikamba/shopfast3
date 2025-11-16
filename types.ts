@@ -24,6 +24,7 @@ export enum RestaurantView {
     REPORTS,
     SETTINGS,
     TABLE_MANAGEMENT,
+    DELIVERIES,
 }
 
 export enum StaffRole {
@@ -57,6 +58,14 @@ export interface Table {
     number: number;
     capacity: number;
     status: 'available' | 'occupied' | 'needs-attention';
+    orderCount: number;
+}
+
+export interface DeliveryConfig {
+    enabledByAdmin: boolean;
+    deliveryFee: number;
+    deliveryRadius: number; // in miles/km
+    estimatedTime: number; // in minutes
 }
 
 export interface Restaurant {
@@ -70,7 +79,9 @@ export interface Restaurant {
   status: 'active' | 'disabled';
   createdAt: string;
   subscription: 'basic' | 'premium' | 'enterprise';
+  nextBillingDate: string;
   paymentSettings: PaymentSettings;
+  deliveryConfig: DeliveryConfig;
   categories: string[];
   tables: Table[];
   serviceRequests: ServiceRequest[];
@@ -103,7 +114,7 @@ export interface CartItem extends MenuItem {
   quantity: number;
 }
 
-export type OrderStatus = 'Received' | 'Preparing' | 'On Route' | 'Served' | 'Paid' | 'Verified';
+export type OrderStatus = 'Pending' | 'Received' | 'Preparing' | 'On Route' | 'Out for Delivery' | 'Served' | 'Paid' | 'Verified' | 'Delivered';
 
 export type OrderType = 'dine-in' | 'takeaway' | 'delivery';
 
@@ -120,6 +131,8 @@ export interface Order extends OrderContext {
     items: CartItem[];
     total: number;
     status: OrderStatus;
+    preparationTime?: number; // in minutes
+    acceptedAt?: number; // timestamp
 }
 
 export interface ServerAlert {
@@ -161,4 +174,59 @@ export interface StaffMember {
     pin: string; // for login
     restaurantId: string;
     status: 'active' | 'suspended';
+}
+
+// Analytics Types
+export interface ReportMetrics {
+    totalRevenue: number;
+    totalOrders: number;
+    totalCustomers: number;
+    averageOrderValue: number;
+    abandonedCarts: number;
+    abandonedCartValue: number;
+}
+
+export interface HourlyActivity {
+    hour: string; // "9am", "10am", etc.
+    orders: number;
+}
+
+export interface PopularItem {
+    id: string;
+    name: string;
+    orderCount: number;
+}
+
+export interface RestaurantReportData {
+    metrics: ReportMetrics;
+    hourlyActivity: HourlyActivity[];
+    popularItems: PopularItem[];
+}
+
+// HQ Billing and Support Types
+export interface BillingHistory {
+    id: string;
+    restaurantId: string;
+    date: string;
+    amount: number;
+    status: 'paid' | 'failed';
+    invoiceId: string;
+}
+
+export type TicketStatus = 'open' | 'in-progress' | 'resolved' | 'closed';
+export type TicketPriority = 'high' | 'medium' | 'low';
+
+export interface SupportTicket {
+    id: string;
+    restaurantId: string;
+    restaurantName: string;
+    subject: string;
+    priority: TicketPriority;
+    status: TicketStatus;
+    createdAt: string;
+    conversation: {
+        author: string;
+        timestamp: string;
+        message: string;
+    }[];
 }
