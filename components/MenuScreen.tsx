@@ -1,19 +1,21 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Restaurant, MenuItem, CartItem, AiRecommendation, OrderContext } from '../types';
 import getMenuRecommendations from '../services/geminiService';
-import { ChevronLeftIcon, ShoppingCartIcon, SparklesIcon, XIcon, PlusIcon, MinusIcon, CheckCircleIcon } from './Icons';
+import { ChevronLeftIcon, ShoppingCartIcon, SparklesIcon, XIcon, PlusIcon, MinusIcon, CheckCircleIcon, HandIcon } from './Icons';
+import FloatingActionButton from './FloatingActionButton';
+import ServiceRequestModal from './ServiceRequestModal';
 
 const Tag: React.FC<{ label: string }> = ({ label }) => {
     const colors: { [key: string]: string } = {
-        vegetarian: 'bg-emerald-100 text-emerald-800',
+        vegetarian: 'bg-green-100 text-green-800',
         spicy: 'bg-red-100 text-red-800',
         'gluten-free': 'bg-blue-100 text-blue-800',
         new: 'bg-yellow-100 text-yellow-800',
     };
-    return <span className={`text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full ${colors[label] || 'bg-gray-100 text-gray-800'}`}>{label}</span>
+    return <span className={`text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full ${colors[label] || 'bg-slate-200 text-slate-800'}`}>{label}</span>
 };
 
-const MenuItemCard: React.FC<{ item: MenuItem; onAdd: () => void; primaryColor: string; }> = ({ item, onAdd, primaryColor }) => {
+const MenuItemCard: React.FC<{ item: MenuItem; onAdd: () => void; }> = ({ item, onAdd }) => {
     const [isAdded, setIsAdded] = useState(false);
 
     const handleAddToCart = () => {
@@ -25,22 +27,24 @@ const MenuItemCard: React.FC<{ item: MenuItem; onAdd: () => void; primaryColor: 
     };
 
     return (
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden flex flex-col">
-            <img src={item.imageUrl} alt={item.name} className="w-full h-32 object-cover" />
+        <div className="glass-card rounded-2xl overflow-hidden flex flex-col group">
+            <div className="overflow-hidden">
+                <img src={item.imageUrl} alt={item.name} className="w-full h-32 object-cover group-hover:scale-110 transition-transform duration-300" />
+            </div>
             <div className="p-4 flex flex-col flex-grow">
-                <h4 className="font-bold text-lg text-brand-charcoal">{item.name}</h4>
-                <p className="text-gray-500 text-sm mt-1 flex-grow">{item.description}</p>
+                <h4 className="font-bold text-lg text-copy">{item.name}</h4>
+                <p className="text-copy-light text-sm mt-1 flex-grow">{item.description}</p>
                  <div className="mt-2">
                     {item.tags.map(tag => <Tag key={tag} label={tag} />)}
                 </div>
                 <div className="flex justify-between items-center mt-4">
-                    <span className="font-bold text-brand-charcoal text-lg">${item.price.toFixed(2)}</span>
+                    <span className="font-bold text-copy text-lg">${item.price.toFixed(2)}</span>
                     <button 
                         onClick={handleAddToCart} 
-                        style={isAdded ? { backgroundColor: '#1BAE89'} : { backgroundColor: primaryColor }}
                         className={`
-                            text-white rounded-full w-10 h-10 flex items-center justify-center 
-                            transform hover:scale-110 transition-all duration-300 ease-in-out
+                            ${isAdded ? 'bg-secondary text-white' : 'bg-primary text-brand-charcoal'}
+                            rounded-full w-10 h-10 flex items-center justify-center 
+                            transform hover:scale-110 transition-all duration-300 ease-in-out shadow-lg
                             ${isAdded ? 'scale-125' : ''}
                         `}
                     >
@@ -76,31 +80,31 @@ const Cart: React.FC<{
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
-            <div className="bg-white w-full max-w-7xl mx-auto rounded-t-3xl p-6 flex flex-col max-h-[80vh]">
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-end">
+            <div className="glass-card w-full max-w-7xl mx-auto rounded-t-3xl p-6 flex flex-col max-h-[80vh] border-b-0 bg-white">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="font-serif text-2xl font-bold">Your Order</h2>
-                    <button onClick={onClose} className="text-gray-500 hover:text-black">
+                    <h2 className="font-sans text-2xl font-bold text-copy">Your Order</h2>
+                    <button onClick={onClose} className="text-copy-light hover:text-copy">
                         <XIcon className="w-6 h-6" />
                     </button>
                 </div>
-                <p className="text-gray-600 mb-4">from <span className="font-bold">{restaurant.name}</span></p>
+                <p className="text-copy-light mb-4">from <span className="font-bold text-copy">{restaurant.name}</span></p>
                 
                 {cart.length === 0 ? (
-                    <p className="text-center text-gray-500 py-12">Your cart is empty.</p>
+                    <p className="text-center text-copy-light py-12">Your cart is empty.</p>
                 ) : (
-                    <div className="overflow-y-auto space-y-4 flex-grow">
+                    <div className="overflow-y-auto space-y-4 flex-grow pr-2">
                         {cart.map(item => (
                             <div key={item.id} className="flex items-center gap-4">
                                 <img src={item.imageUrl} alt={item.name} className="w-16 h-16 rounded-lg object-cover" />
                                 <div className="flex-grow">
-                                    <h5 className="font-semibold">{item.name}</h5>
-                                    <p className="text-sm text-gray-500">${item.price.toFixed(2)}</p>
+                                    <h5 className="font-semibold text-copy">{item.name}</h5>
+                                    <p className="text-sm text-copy-light">${item.price.toFixed(2)}</p>
                                 </div>
-                                <div className="flex items-center gap-2 border border-gray-200 rounded-full p-1">
-                                    <button onClick={() => onUpdateCartQuantity(item.id, item.quantity - 1)} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"><MinusIcon className="w-4 h-4" /></button>
-                                    <span className="font-bold w-6 text-center">{item.quantity}</span>
-                                    <button onClick={() => onUpdateCartQuantity(item.id, item.quantity + 1)} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"><PlusIcon className="w-4 h-4" /></button>
+                                <div className="flex items-center gap-2 bg-surface-light rounded-full p-1">
+                                    <button onClick={() => onUpdateCartQuantity(item.id, item.quantity - 1)} className="w-7 h-7 flex items-center justify-center rounded-full bg-white hover:bg-primary"><MinusIcon className="w-4 h-4" /></button>
+                                    <span className="font-bold w-6 text-center text-copy">{item.quantity}</span>
+                                    <button onClick={() => onUpdateCartQuantity(item.id, item.quantity + 1)} className="w-7 h-7 flex items-center justify-center rounded-full bg-white hover:bg-primary"><PlusIcon className="w-4 h-4" /></button>
                                 </div>
                             </div>
                         ))}
@@ -108,8 +112,8 @@ const Cart: React.FC<{
                 )}
 
                 {cart.length > 0 && (
-                    <div className="mt-6 border-t pt-4">
-                        <div className="space-y-1 text-sm mb-4">
+                    <div className="mt-6 border-t border-primary/20 pt-4">
+                        <div className="space-y-1 text-sm mb-4 text-copy-light">
                             <div className="flex justify-between">
                                 <span>Subtotal</span>
                                 <span>${subtotal.toFixed(2)}</span>
@@ -121,11 +125,11 @@ const Cart: React.FC<{
                                 </div>
                             )}
                         </div>
-                        <div className="flex justify-between items-center font-bold text-lg mb-4">
+                        <div className="flex justify-between items-center font-bold text-lg mb-4 text-copy">
                             <span>Total</span>
                             <span>${total.toFixed(2)}</span>
                         </div>
-                        <button onClick={onPlaceOrder} className="w-full bg-brand-charcoal text-white font-bold py-4 rounded-full shadow-lg hover:bg-opacity-90 transition">
+                        <button onClick={onPlaceOrder} className="w-full bg-primary text-brand-charcoal font-bold py-4 rounded-xl shadow-lg hover:bg-primary/90 transition shadow-glow-primary">
                             Place Order
                         </button>
                     </div>
@@ -139,37 +143,37 @@ const RecommendationModal: React.FC<{ isOpen: boolean; onClose: () => void; reco
     if(!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md relative">
-                 <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-black">
+        <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4">
+            <div className="glass-card rounded-2xl p-6 w-full max-w-md relative bg-white">
+                 <button onClick={onClose} className="absolute top-4 right-4 text-copy-light hover:text-copy">
                     <XIcon className="w-6 h-6" />
                 </button>
                 <div className="flex items-center gap-2 mb-4">
-                    <SparklesIcon className="w-6 h-6" style={{color: primaryColor}} />
-                    <h3 className="font-serif text-2xl font-bold">AI Recommendation</h3>
+                    <SparklesIcon className="w-6 h-6 text-primary" />
+                    <h3 className="font-sans text-2xl font-bold text-copy">AI Recommendation</h3>
                 </div>
                 {isLoading ? (
                     <div className="text-center py-10">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{borderColor: primaryColor}}></div>
-                        <p className="mt-4 text-gray-600">Generating your perfect meal...</p>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                        <p className="mt-4 text-copy-light">Generating your perfect meal...</p>
                     </div>
                 ) : recommendation ? (
-                    <div className="space-y-4">
+                    <div className="space-y-4 text-copy">
                         <div>
                             <h4 className="font-bold">Starter: {recommendation.starter.name}</h4>
-                            <p className="text-sm text-gray-600 italic">"{recommendation.starter.reasoning}"</p>
+                            <p className="text-sm text-copy-light italic">"{recommendation.starter.reasoning}"</p>
                         </div>
                          <div>
                             <h4 className="font-bold">Main: {recommendation.main.name}</h4>
-                            <p className="text-sm text-gray-600 italic">"{recommendation.main.reasoning}"</p>
+                            <p className="text-sm text-copy-light italic">"{recommendation.main.reasoning}"</p>
                         </div>
                          <div>
                             <h4 className="font-bold">Drink: {recommendation.drink.name}</h4>
-                            <p className="text-sm text-gray-600 italic">"{recommendation.drink.reasoning}"</p>
+                            <p className="text-sm text-copy-light italic">"{recommendation.drink.reasoning}"</p>
                         </div>
-                        <div className="bg-gray-50 p-3 rounded-lg mt-4">
+                        <div className="bg-surface-light p-3 rounded-lg mt-4">
                              <h4 className="font-bold">Why it works:</h4>
-                             <p className="text-sm text-gray-700">{recommendation.overallReasoning}</p>
+                             <p className="text-sm text-copy-light">{recommendation.overallReasoning}</p>
                         </div>
                     </div>
                 ) : <p>Sorry, we couldn't get a recommendation right now.</p>}
@@ -188,14 +192,16 @@ interface MenuScreenProps {
   onUpdateCartQuantity: (itemId: string, newQuantity: number) => void;
   onPlaceOrder: () => void;
   onBack: () => void;
+  onCallServer: (request: string) => void;
 }
 
-const MenuScreen: React.FC<MenuScreenProps> = ({ restaurant, menu, cart, orderContext, onAddToCart, onUpdateCartQuantity, onPlaceOrder, onBack }) => {
+const MenuScreen: React.FC<MenuScreenProps> = ({ restaurant, menu, cart, orderContext, onAddToCart, onUpdateCartQuantity, onPlaceOrder, onBack, onCallServer }) => {
   const [activeCategory, setActiveCategory] = useState<string>(restaurant.categories[0] || '');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isRecoModalOpen, setIsRecoModalOpen] = useState(false);
   const [recommendation, setRecommendation] = useState<AiRecommendation | null>(null);
   const [isRecoLoading, setIsRecoLoading] = useState(false);
+  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
 
   const categories = useMemo(() => restaurant.categories, [restaurant.categories]);
   const filteredMenu = useMemo(() => menu.filter(item => item.category === activeCategory), [menu, activeCategory]);
@@ -215,85 +221,94 @@ const MenuScreen: React.FC<MenuScreenProps> = ({ restaurant, menu, cart, orderCo
     setRecommendation(result);
     setIsRecoLoading(false);
   }
+
+  const handleSelectServiceRequest = (request: string) => {
+    onCallServer(request);
+    // The modal will show a confirmation and then close itself.
+  };
   
   const { primaryColor, welcomeMessage, dailySpecial } = restaurant.theme;
 
   return (
-    <div className="bg-gray-50 min-h-screen pb-24">
+    <div className="min-h-screen pb-32">
       <div className="relative h-48 md:h-64">
         <img src={restaurant.imageUrl} alt={restaurant.name} className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-black bg-opacity-40"></div>
-        <button onClick={onBack} className="absolute top-4 left-4 bg-white bg-opacity-80 rounded-full p-2 text-brand-charcoal">
+        <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent"></div>
+        <button onClick={onBack} className="absolute top-4 left-4 bg-black/30 backdrop-blur-sm rounded-full p-2 text-white">
             <ChevronLeftIcon className="w-6 h-6" />
         </button>
         <div className="absolute bottom-0 left-0 p-4 md:p-6 flex items-center gap-4">
-            <img src={restaurant.logoUrl} alt={`${restaurant.name} logo`} className="w-16 h-16 md:w-24 md:h-24 rounded-full border-4 border-white object-cover shadow-lg" />
-            <h1 className="font-serif text-3xl md:text-5xl font-bold text-white shadow-text">{restaurant.name}</h1>
+            <img src={restaurant.logoUrl} alt={`${restaurant.name} logo`} className="w-16 h-16 md:w-24 md:h-24 rounded-full border-4 border-surface object-cover shadow-lg" />
+            <h1 className="font-sans text-3xl md:text-5xl font-bold text-white" style={{textShadow: '0 2px 10px rgba(0,0,0,0.5)'}}>{restaurant.name}</h1>
         </div>
       </div>
       
       {welcomeMessage && (
-        <div className="p-4 bg-white border-b border-gray-200">
-            <p className="text-center text-gray-700 italic">{welcomeMessage}</p>
+        <div className="p-4 bg-surface-light my-4 rounded-xl">
+            <p className="text-center text-copy-light italic">{welcomeMessage}</p>
         </div>
       )}
 
       {dailySpecial && dailySpecial.active && (
-        <div className="p-4 bg-yellow-50 border-b border-yellow-200">
+        <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl my-4">
             <div className="flex items-start gap-3">
                 <div className="flex-shrink-0 pt-1">
                     <SparklesIcon className="w-5 h-5 text-yellow-500" />
                 </div>
                 <div>
-                    <h3 className="font-bold text-yellow-800">{dailySpecial.title}</h3>
-                    <p className="text-sm text-yellow-700 mt-1">{dailySpecial.description}</p>
+                    <h3 className="font-bold text-yellow-700">{dailySpecial.title}</h3>
+                    <p className="text-sm text-yellow-600/80 mt-1">{dailySpecial.description}</p>
                 </div>
             </div>
         </div>
       )}
 
-      <div className="p-4 sticky top-0 bg-gray-50 z-10 shadow-sm">
-        <div className="flex justify-between items-center">
+      <div className="p-4 sticky top-0 bg-background/80 backdrop-blur-xl z-10 shadow-sm -mx-4">
+        <div className="flex justify-between items-center container mx-auto">
              <div className="flex space-x-2 overflow-x-auto pb-2 -mb-2">
                 {categories.map(category => (
                     <button
                         key={category}
                         onClick={() => setActiveCategory(category)}
-                        className={`px-4 py-2 rounded-full font-semibold text-sm whitespace-nowrap transition-colors ${activeCategory === category ? 'text-white' : 'bg-white text-brand-charcoal'}`}
-                        style={activeCategory === category ? { backgroundColor: primaryColor } : {}}
+                        className={`px-4 py-2 rounded-full font-semibold text-sm whitespace-nowrap transition-colors ${activeCategory === category ? 'bg-primary text-brand-charcoal shadow-glow-primary' : 'bg-surface-light text-copy-light hover:bg-surface'}`}
                     >
                         {category}
                     </button>
                 ))}
             </div>
-            <button onClick={handleGetRecommendation} className="ml-2 p-2 rounded-full text-white flex-shrink-0" style={{ backgroundColor: primaryColor }}>
+            <button onClick={handleGetRecommendation} className="ml-2 p-2 rounded-full text-brand-charcoal flex-shrink-0 bg-primary shadow-glow-primary">
                 <SparklesIcon className="w-5 h-5" />
             </button>
         </div>
       </div>
       
-      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredMenu.map(item => <MenuItemCard key={item.id} item={item} onAdd={() => onAddToCart(item)} primaryColor={primaryColor} />)}
+      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 -mx-4">
+        {filteredMenu.map(item => <MenuItemCard key={item.id} item={item} onAdd={() => onAddToCart(item)} />)}
       </div>
 
       {cartItemCount > 0 && (
-         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-7xl px-4">
-            <div className="max-w-md mx-auto">
-                <div className="p-4 bg-gradient-to-t from-gray-50 to-transparent">
+         <div className="fixed bottom-28 left-0 w-full p-4 pointer-events-none">
+            <div className="max-w-md mx-auto glass-card rounded-2xl p-2 pointer-events-auto">
                   <button 
                     onClick={() => setIsCartOpen(true)}
-                    style={{ backgroundColor: primaryColor }}
-                    className="w-full text-white font-bold py-4 px-6 rounded-full shadow-lg flex items-center justify-between transform hover:scale-105 transition-transform duration-300"
+                    className="w-full text-brand-charcoal font-bold py-3 px-6 rounded-xl shadow-lg flex items-center justify-between bg-primary hover:bg-primary/80 transition-all transform hover:scale-105"
                   >
                      <div className="flex items-center gap-2">
                         <ShoppingCartIcon className="w-6 h-6" />
                         <span>View Order</span>
                      </div>
-                    <span className="bg-white font-bold rounded-full w-8 h-8 flex items-center justify-center" style={{ color: primaryColor }}>{cartItemCount}</span>
+                    <span className="bg-white text-primary font-bold rounded-full w-8 h-8 flex items-center justify-center">{cartItemCount}</span>
                   </button>
-              </div>
             </div>
         </div>
+      )}
+
+      {orderContext?.orderType === 'dine-in' && restaurant.serviceRequests.length > 0 && (
+          <FloatingActionButton
+              onClick={() => setIsServiceModalOpen(true)}
+              label="Hail Waiter"
+              icon={HandIcon}
+          />
       )}
 
       <Cart 
@@ -306,6 +321,13 @@ const MenuScreen: React.FC<MenuScreenProps> = ({ restaurant, menu, cart, orderCo
         orderContext={orderContext}
        />
       <RecommendationModal isOpen={isRecoModalOpen} onClose={() => setIsRecoModalOpen(false)} recommendation={recommendation} isLoading={isRecoLoading} primaryColor={primaryColor} />
+      <ServiceRequestModal 
+        isOpen={isServiceModalOpen}
+        onClose={() => setIsServiceModalOpen(false)}
+        serviceRequests={restaurant.serviceRequests}
+        onSelectRequest={handleSelectServiceRequest}
+        primaryColor={primaryColor}
+      />
     </div>
   );
 };

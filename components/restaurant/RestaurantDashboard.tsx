@@ -23,16 +23,16 @@ interface NavItemProps {
 }
 
 const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, isActive, onClick }) => (
-    <button onClick={onClick} className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActive ? 'bg-brand-gold text-white' : 'text-gray-600 hover:bg-gray-200 hover:text-brand-charcoal'}`}>
+    <button onClick={onClick} className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActive ? 'bg-primary text-brand-charcoal' : 'text-copy-light hover:bg-primary/10 hover:text-copy'}`}>
         <Icon className="w-5 h-5 mr-3" />
         <span>{label}</span>
     </button>
 );
 
 const PlaceholderView: React.FC<{title: string}> = ({title}) => (
-    <div className="bg-white p-8 rounded-lg shadow-md h-full flex flex-col items-center justify-center text-center">
-        <h2 className="text-2xl font-bold text-brand-charcoal">{title}</h2>
-        <p className="mt-2 text-gray-500">This feature is under construction.</p>
+    <div className="glass-card p-8 rounded-lg h-full flex flex-col items-center justify-center text-center">
+        <h2 className="text-2xl font-bold text-copy">{title}</h2>
+        <p className="mt-2 text-copy-light">This feature is under construction.</p>
     </div>
 );
 
@@ -169,14 +169,14 @@ const RestaurantDashboard: React.FC<RestaurantDashboardProps> = ({
     };
     
     return (
-        <div className="flex h-screen bg-gray-100 font-sans">
-            <aside className="w-64 bg-white text-brand-charcoal flex flex-col border-r">
-                <div className="flex items-center justify-center h-20 border-b">
+        <div className="flex h-screen bg-background font-sans text-copy">
+            <aside className="w-64 bg-surface flex flex-col border-r border-gray-200">
+                <div className="flex items-center justify-center h-20 border-b border-gray-200">
                    <div className="flex items-center gap-3 text-center">
                     <img src={restaurant.logoUrl} alt={restaurant.name} className="w-10 h-10 rounded-full" />
                     <div>
-                        <h1 className="font-bold text-md leading-tight">{restaurant.name}</h1>
-                        <p className="text-xs text-gray-500">{role}</p>
+                        <h1 className="font-bold text-md leading-tight text-copy">{restaurant.name}</h1>
+                        <p className="text-xs text-copy-light">{role}</p>
                     </div>
                   </div>
                 </div>
@@ -191,20 +191,20 @@ const RestaurantDashboard: React.FC<RestaurantDashboardProps> = ({
                         />
                     ))}
                 </nav>
-                <div className="p-4 border-t">
-                    <button onClick={onLogout} className="flex items-center w-full px-4 py-3 text-sm font-medium text-gray-600 rounded-lg hover:bg-red-100 hover:text-red-700 transition-colors">
+                <div className="p-4 border-t border-gray-200">
+                    <button onClick={onLogout} className="flex items-center w-full px-4 py-3 text-sm font-medium text-copy-light rounded-lg hover:bg-red-500/10 hover:text-red-600 transition-colors">
                         <LogOutIcon className="w-5 h-5 mr-3" />
                         <span>Logout</span>
                     </button>
                 </div>
             </aside>
             <main className="flex-1 flex flex-col overflow-hidden">
-                <header className="h-20 bg-white border-b border-gray-200 flex items-center px-8 justify-between">
-                    <h2 className="text-2xl font-bold text-brand-charcoal">
+                <header className="h-20 bg-surface border-b border-gray-200 flex items-center px-8 justify-between">
+                    <h2 className="text-2xl font-bold text-copy">
                         {availableNavItems.find(i => i.view === currentView)?.label}
                     </h2>
                 </header>
-                <div className="flex-1 overflow-y-auto p-8 bg-gray-50">
+                <div className="flex-1 overflow-y-auto p-8">
                     {renderView()}
                 </div>
             </main>

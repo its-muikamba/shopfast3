@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { MenuItem, AiRecommendation, CartItem } from '../types';
+import { MenuItem, AiRecommendation, CartItem, GeneralAiRecommendation } from '../types';
 
 const getMenuRecommendations = async (menu: MenuItem[], cart: CartItem[]): Promise<AiRecommendation | null> => {
     if (!process.env.API_KEY) {
@@ -93,5 +93,73 @@ const getMenuRecommendations = async (menu: MenuItem[], cart: CartItem[]): Promi
         return null;
     }
 };
+
+export const getGeneralRecommendations = async (
+    promptType: 'trending' | 'location' | 'offers',
+    location: { lat: number; lon: number } | null
+): Promise<GeneralAiRecommendation | null> => {
+     if (!process.env.API_KEY) {
+        console.error("API_KEY environment variable not set.");
+        // Return a mock recommendation if API key is not available
+        return {
+            suggestions: [
+                { title: 'Spicy Taco Fiesta', description: 'A vibrant mix of flavors that is currently the talk of the town!' },
+                { title: 'Gourmet Burger Bliss', description: 'Classic comfort food elevated to a new, delicious level.' },
+                { title: 'Artisanal Pizza Night', description: 'Hand-crafted pizzas with fresh, local ingredients. A perfect shareable delight.' },
+            ]
+        };
+    }
+    
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        
+        const promptTypeMessages = {
+            trending: "What's trending in food right now?",
+            location: "Meal ideas based on my current location.",
+            offers: "Popular food deals and special offers."
+        };
+
+        const prompt = `
+            You are a food recommendation expert for a restaurant discovery app. A user is looking for suggestions.
+            The user's request is: '${promptTypeMessages[promptType]}'.
+            ${location ? `The user is near latitude: ${location.lat}, longitude: ${location.lon}. Use this to provide locally relevant suggestions if applicable, but keep them general cuisine/meal types, not specific restaurant names.` : ''}
+            Please provide 3 diverse and exciting meal or cuisine suggestions.
+            For each suggestion, provide a catchy title and a short, enticing description (max 20 words).
+            Keep the tone fun, friendly, and appealing to a foodie.
+        `;
+
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        suggestions: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    title: { type: Type.STRING, description: "The catchy title for the meal/cuisine suggestion." },
+                                    description: { type: Type.STRING, description: "A short, enticing description (max 20 words)." }
+                                }
+                            }
+                        }
+                    },
+                },
+            },
+        });
+
+        const jsonText = response.text.trim();
+        const recommendation: GeneralAiRecommendation = JSON.parse(jsonText);
+        return recommendation;
+
+    } catch (error) {
+        console.error("Error fetching general recommendations from Gemini API:", error);
+        return null;
+    }
+};
+
 
 export default getMenuRecommendations;

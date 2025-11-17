@@ -5,6 +5,13 @@ export enum View {
   PAYMENT,
 }
 
+export enum Tab {
+  HOME,
+  DISCOVER,
+  ORDER,
+  PROFILE,
+}
+
 export enum HQView {
   OVERVIEW,
   RESTAURANTS,
@@ -32,6 +39,13 @@ export enum StaffRole {
     SERVER = 'Server',
     KITCHEN = 'Kitchen Staff',
     CASHIER = 'Cashier'
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  orderHistory: string[]; // Array of order IDs
 }
 
 export interface PaymentProviderSettings {
@@ -133,6 +147,18 @@ export interface Order extends OrderContext {
     status: OrderStatus;
     preparationTime?: number; // in minutes
     acceptedAt?: number; // timestamp
+    userId?: string;
+}
+
+export interface LiveOrder extends OrderContext {
+    id: string;
+    restaurantId: string;
+    items: CartItem[];
+    total: number;
+    status: OrderStatus;
+    preparationTime?: number;
+    acceptedAt?: number;
+    userId?: string;
 }
 
 export interface ServerAlert {
@@ -150,6 +176,16 @@ export interface AiRecommendation {
     drink: { name: string; reasoning: string };
     overallReasoning: string;
 }
+
+export interface GeneralAiSuggestion {
+    title: string;
+    description: string;
+}
+
+export interface GeneralAiRecommendation {
+    suggestions: GeneralAiSuggestion[];
+}
+
 
 export interface HQMetrics {
   totalRestaurants: number;

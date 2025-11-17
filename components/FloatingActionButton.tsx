@@ -1,22 +1,26 @@
 import React from 'react';
-import { BellIcon } from './Icons';
+import { HandIcon } from './Icons';
 
 interface FloatingActionButtonProps {
-    onClick: () => void;
-    primaryColor: string;
+  onClick: () => void;
+  icon?: React.ElementType;
+  label: string;
 }
 
-const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ onClick, primaryColor }) => {
-    return (
-        <button
-            onClick={onClick}
-            style={{ backgroundColor: primaryColor }}
-            className="fixed bottom-6 right-6 w-16 h-16 rounded-full text-white shadow-lg flex items-center justify-center transform hover:scale-110 transition-transform duration-300 z-30"
-            aria-label="Request service"
-        >
-            <BellIcon className="w-8 h-8" />
-        </button>
-    );
+const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ onClick, icon: Icon = HandIcon, label }) => {
+  return (
+    // Positioned at bottom-28 to float above the new, taller nav bar area
+    <div className="fixed bottom-28 right-4 z-20">
+      <button
+        onClick={onClick}
+        className="flex items-center gap-2 bg-primary text-brand-charcoal font-bold py-3 px-5 rounded-full shadow-lg transform hover:scale-105 transition-transform"
+        aria-label={label}
+      >
+        <Icon className="w-6 h-6" />
+        <span className="hidden sm:inline">{label}</span>
+      </button>
+    </div>
+  );
 };
 
 export default FloatingActionButton;

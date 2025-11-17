@@ -1,4 +1,4 @@
-import { Restaurant, MenuItem, HQMetrics, AuditLog, StaffMember, StaffRole, Order, RestaurantReportData, BillingHistory, SupportTicket } from './types';
+import { Restaurant, MenuItem, HQMetrics, AuditLog, StaffMember, StaffRole, LiveOrder, RestaurantReportData, BillingHistory, SupportTicket } from './types';
 
 export const defaultPaymentSettings = {
     stripe: { enabled: false, publicKey: '', secretKey: '' },
@@ -49,7 +49,7 @@ export const RESTAURANTS: Restaurant[] = [
     },
     theme: {
       welcomeMessage: 'Experience the taste of authentic Italian cuisine!',
-      primaryColor: '#C5A052',
+      primaryColor: '#f2b154',
       dailySpecial: {
         title: "Chef's Special: Truffle Risotto",
         description: "A creamy risotto infused with black truffle oil and topped with fresh parmesan.",
@@ -85,7 +85,7 @@ export const RESTAURANTS: Restaurant[] = [
     },
     theme: {
       welcomeMessage: 'A culinary journey through Asia.',
-      primaryColor: '#1BAE89',
+      primaryColor: '#f2b154',
       dailySpecial: {
         title: "Today's Special: Dragon Roll",
         description: "Eel and cucumber topped with avocado, tobiko, and eel sauce.",
@@ -117,7 +117,7 @@ export const RESTAURANTS: Restaurant[] = [
     },
     theme: {
       welcomeMessage: 'Hearty meals, just like home.',
-      primaryColor: '#b91c1c',
+      primaryColor: '#f2b154',
       dailySpecial: {
         title: "Weekend Deal: BBQ Ribs",
         description: "Full rack of slow-cooked pork ribs with our signature BBQ sauce.",
@@ -149,7 +149,7 @@ export const RESTAURANTS: Restaurant[] = [
     },
     theme: {
       welcomeMessage: 'The freshest catch in town, served daily.',
-      primaryColor: '#58A9E0',
+      primaryColor: '#f2b154',
       dailySpecial: {
         title: "Catch of the Day: Grilled Swordfish",
         description: "Served with a lemon-caper sauce and roasted vegetables.",
@@ -211,11 +211,11 @@ export const STAFF_MEMBERS: StaffMember[] = [
     { id: 's6', name: 'Charles Xavier', role: StaffRole.ADMIN, pin: '1122', restaurantId: 'r4', status: 'active'},
 ];
 
-export const INITIAL_ACTIVE_ORDERS: Omit<Order, 'restaurant'>[] = [
-    { id: 'ORD-101', tableNumber: 5, items: [{...MENUS.r1[0], quantity: 1}, {...MENUS.r1[2], quantity: 1}], total: 26.50, status: 'Pending', orderType: 'dine-in', orderName: 'Gilbert' },
-    { id: 'ORD-102', tableNumber: 12, items: [{...MENUS.r1[1], quantity: 2}], total: 24.00, status: 'Pending', orderType: 'dine-in', orderName: 'Xavier' },
-    { id: 'ORD-103', tableNumber: 8, items: [{...MENUS.r1[3], quantity: 1}, {...MENUS.r1[6], quantity: 2}], total: 29.00, status: 'Preparing', orderType: 'dine-in', orderName: 'Diana', acceptedAt: Date.now() - (1000 * 60 * 3), preparationTime: 15 },
-    { id: 'ORD-104', tableNumber: 3, items: [{...MENUS.r1[4], quantity: 1}], total: 9.00, status: 'On Route', orderType: 'dine-in', orderName: 'Charles', acceptedAt: Date.now() - (1000 * 60 * 10), preparationTime: 10 },
+export const INITIAL_ACTIVE_ORDERS: LiveOrder[] = [
+    { id: 'ORD-101', restaurantId: 'r1', tableNumber: 5, items: [{...MENUS.r1[0], quantity: 1}, {...MENUS.r1[2], quantity: 1}], total: 26.50, status: 'Pending', orderType: 'dine-in', orderName: 'Gilbert', userId: 'u1' },
+    { id: 'ORD-102', restaurantId: 'r2', tableNumber: 12, items: [{...MENUS.r2[1], quantity: 2}], total: 33.00, status: 'Pending', orderType: 'dine-in', orderName: 'Xavier', userId: 'u1' },
+    { id: 'ORD-103', restaurantId: 'r1', tableNumber: 8, items: [{...MENUS.r1[3], quantity: 1}, {...MENUS.r1[6], quantity: 2}], total: 29.00, status: 'Preparing', orderType: 'dine-in', orderName: 'Diana', acceptedAt: Date.now() - (1000 * 60 * 3), preparationTime: 15 },
+    { id: 'ORD-104', restaurantId: 'r1', tableNumber: 3, items: [{...MENUS.r1[4], quantity: 1}], total: 9.00, status: 'On Route', orderType: 'dine-in', orderName: 'Charles', acceptedAt: Date.now() - (1000 * 60 * 10), preparationTime: 10, userId: 'u1' },
 ];
 
 export const RESTAURANT_REPORTS: Record<string, RestaurantReportData> = {

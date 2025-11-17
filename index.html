@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,21 +8,74 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    }
+    .shadcn-input {
+        @apply w-full px-4 py-3 rounded-lg border-2 border-surface-light bg-surface focus:outline-none focus:ring-2 focus:ring-primary/80 focus:border-primary/80 transition-all text-copy placeholder:text-copy-lighter shadow-sm;
+    }
+  </style>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-            serif: ['Playfair Display', 'serif'],
+            sans: ['Sora', 'sans-serif'],
           },
           colors: {
-            'brand-charcoal': '#1A1A1A',
+            'background': '#111827',
+            'surface': '#1F2937',
+            'surface-light': '#374151',
+            'primary': '#f2b154',      // Yellow from palette
+            'secondary': '#65a951',    // Green from palette
+            'brand-orange': '#f25527',   // Orange from palette
+            'brand-red': '#cc0812',      // Red from palette
+            'copy': '#F8F9FA',
+            'copy-light': '#9CA3AF',
+            'copy-lighter': '#6B7280',
+            'brand-charcoal': '#1A1A1A', // Used for text on light primary bg
             'brand-gold': '#C5A052',
-            'brand-emerald': '#1BAE89',
+            'brand-emerald': '#65a951', 
             'brand-sky': '#58A9E0',
           },
+          backdropBlur: {
+            'xl': '24px',
+          },
+          boxShadow: {
+            'glow-primary': '0 0 25px 5px rgba(242, 177, 84, 0.5)',
+          },
+           animation: {
+            'gradient-x': 'gradient-x 5s ease infinite',
+            'pulse-glow': 'pulse-glow 2.5s ease-in-out infinite',
+          },
+          keyframes: {
+            'gradient-x': {
+              '0%, 100%': {
+                'background-size': '200% 200%',
+                'background-position': 'left center',
+              },
+              '50%': {
+                'background-size': '200% 200%',
+                'background-position': 'right center',
+              },
+            },
+            'pulse-glow': {
+              '0%, 100%': { 
+                boxShadow: '0 0 25px 5px rgba(242, 177, 84, 0.4)',
+                transform: 'scale(1)'
+              },
+              '50%': { 
+                boxShadow: '0 0 40px 10px rgba(242, 177, 84, 0.6)',
+                transform: 'scale(1.02)'
+              }
+            }
+          }
         },
       },
     }
@@ -39,7 +91,7 @@
 }
 </script>
 </head>
-<body class="bg-gray-100">
+<body class="bg-background font-sans text-copy">
   <div id="root"></div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script type="module" src="/index.tsx"></script>

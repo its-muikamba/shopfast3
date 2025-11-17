@@ -20,7 +20,7 @@ interface HQDashboardProps {
   onUpdateTicketStatus: (ticketId: string, newStatus: TicketStatus) => void;
   onLogout: () => void;
   onAddRestaurant: (payload: { 
-    restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme' | 'categories' | 'tables' | 'serviceRequests' | 'paymentSettings' | 'nextBillingDate'>;
+    restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme' | 'categories' | 'tables' | 'serviceRequests' | 'paymentSettings' | 'nextBillingDate' | 'deliveryConfig'>;
     adminData: Omit<StaffMember, 'id' | 'restaurantId' | 'role' | 'status'>;
   }) => void;
   onUpdateRestaurant: (restaurant: Restaurant) => void;
@@ -29,7 +29,7 @@ interface HQDashboardProps {
 }
 
 const NavItem: React.FC<{ icon: React.ElementType, label: string, isActive: boolean, onClick: () => void }> = ({ icon: Icon, label, isActive, onClick }) => (
-    <button onClick={onClick} className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActive ? 'bg-brand-gold text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}>
+    <button onClick={onClick} className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActive ? 'bg-primary text-brand-charcoal' : 'text-copy-light hover:bg-primary/10 hover:text-copy'}`}>
         <Icon className="w-5 h-5 mr-3" />
         <span>{label}</span>
     </button>
@@ -77,12 +77,12 @@ const HQDashboard: React.FC<HQDashboardProps> = ({
   ];
 
   return (
-    <div className="flex h-screen bg-gray-100 font-sans">
-      <aside className="w-64 bg-brand-charcoal text-white flex flex-col">
-        <div className="flex items-center justify-center h-20 border-b border-gray-700">
+    <div className="flex h-screen bg-background font-sans text-copy">
+      <aside className="w-64 bg-surface flex flex-col border-r border-gray-200">
+        <div className="flex items-center justify-center h-20 border-b border-gray-200">
            <div className="flex items-center gap-2">
-            <LogoIcon className="h-8 w-8 text-brand-gold" />
-            <h1 className="font-serif text-2xl font-bold">ShopFast HQ</h1>
+            <LogoIcon className="h-8 w-8 text-primary" />
+            <h1 className="font-sans text-2xl font-bold">ShopFast HQ</h1>
           </div>
         </div>
         <nav className="flex-1 p-4 space-y-2">
@@ -96,19 +96,18 @@ const HQDashboard: React.FC<HQDashboardProps> = ({
                 />
             ))}
         </nav>
-        <div className="p-4 border-t border-gray-700">
-            <button onClick={onLogout} className="flex items-center w-full px-4 py-3 text-sm font-medium text-gray-300 rounded-lg hover:bg-red-800 hover:text-white transition-colors">
+        <div className="p-4 border-t border-gray-200">
+            <button onClick={onLogout} className="flex items-center w-full px-4 py-3 text-sm font-medium text-copy-light rounded-lg hover:bg-red-500/10 hover:text-red-600 transition-colors">
                 <LogOutIcon className="w-5 h-5 mr-3" />
                 <span>Logout</span>
             </button>
         </div>
       </aside>
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-20 bg-white border-b border-gray-200 flex items-center px-8 justify-between">
-            <h2 className="text-2xl font-bold text-brand-charcoal">
+        <header className="h-20 bg-surface border-b border-gray-200 flex items-center px-8 justify-between">
+            <h2 className="text-2xl font-bold text-copy">
                 {navItems.find(i => i.view === currentView)?.label || 'Dashboard'}
             </h2>
-             {/* Future user profile section can go here */}
         </header>
         <div className="flex-1 overflow-y-auto p-8">
           {renderView()}

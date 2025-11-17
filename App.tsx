@@ -1,22 +1,26 @@
+
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Restaurant, CartItem, Order, StaffRole, StaffMember, MenuItem, OrderContext, ServerAlert, OrderStatus, RestaurantReportData, BillingHistory, SupportTicket, TicketStatus } from './types';
+import { View, Restaurant, CartItem, Order, StaffRole, StaffMember, MenuItem, OrderContext, ServerAlert, OrderStatus, RestaurantReportData, BillingHistory, SupportTicket, TicketStatus, Tab, User, LiveOrder } from './types';
 import { RESTAURANTS, MENUS, STAFF_MEMBERS, INITIAL_ACTIVE_ORDERS, RESTAURANT_REPORTS, BILLING_HISTORY, SUPPORT_TICKETS } from './constants';
-import HomeScreen from './components/HomeScreen';
+import DiscoverScreen from './components/DiscoverScreen';
 import MenuScreen from './components/MenuScreen';
-import OrderTrackerScreen from './components/OrderTrackerScreen';
 import PaymentScreen from './components/PaymentScreen';
-import { LogoIcon } from './components/Icons';
 import HQLoginScreen from './components/hq/HQLoginScreen';
 import HQDashboard from './components/hq/HQDashboard';
 import RestaurantLoginScreen from './components/restaurant/RestaurantLoginScreen';
 import RestaurantDashboard from './components/restaurant/RestaurantDashboard';
 import OrderContextModal from './components/OrderContextModal';
-import FloatingActionButton from './components/FloatingActionButton';
 import ServiceRequestModal from './components/ServiceRequestModal';
+import BottomNavBar from './components/common/BottomNavBar';
+import HomePage from './components/HomePage';
+import OrderPage from './components/OrderPage';
+import ProfileScreen from './components/ProfileScreen';
 
 // Keys for localStorage
 const LIVE_ORDERS_STORAGE_KEY = 'shopfast_liveOrders';
 const SERVER_ALERTS_STORAGE_KEY = 'shopfast_serverAlerts';
+const CURRENT_USER_STORAGE_KEY = 'shopfast_currentUser';
 
 // Helper to safely parse JSON from localStorage
 const getFromStorage = <T,>(key: string, fallback: T): T => {
@@ -27,107 +31,6 @@ const getFromStorage = <T,>(key: string, fallback: T): T => {
         console.error(`Error reading from localStorage key “${key}”:`, error);
         return fallback;
     }
-};
-
-
-const DinerApp: React.FC<{
-  restaurants: Restaurant[];
-  onSelectRestaurant: (restaurant: Restaurant) => void;
-  selectedRestaurant: Restaurant | null;
-  menu: MenuItem[];
-  view: View;
-  cart: CartItem[];
-  handleAddToCart: (item: any, quantity?: number) => void;
-  handleUpdateCartQuantity: (itemId: string, newQuantity: number) => void;
-  handlePlaceOrder: () => void;
-  handleBackToHome: () => void;
-  order: Order | null;
-  setOrder: (order: Order | null) => void;
-  setView: (view: View) => void;
-  handlePaymentSuccess: () => void;
-  resetApp: () => void;
-  onCallServer: (request: string) => void;
-  orderContext: OrderContext | null;
-}> = (props) => {
-  const {
-    restaurants, onSelectRestaurant, selectedRestaurant, menu, view, cart, 
-    handleAddToCart, handleUpdateCartQuantity, handlePlaceOrder, 
-    handleBackToHome, order, setOrder, setView, handlePaymentSuccess, resetApp,
-    onCallServer,
-    orderContext
-  } = props;
-
-  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
-
-  const renderContent = () => {
-    switch (view) {
-      case View.MENU:
-        if (selectedRestaurant) {
-          return (
-            <MenuScreen
-              restaurant={selectedRestaurant}
-              menu={menu}
-              cart={cart}
-              orderContext={orderContext}
-              onAddToCart={handleAddToCart}
-              onUpdateCartQuantity={handleUpdateCartQuantity}
-              onPlaceOrder={handlePlaceOrder}
-              onBack={handleBackToHome}
-            />
-          );
-        }
-      case View.TRACKING:
-        if (order) {
-          return <OrderTrackerScreen order={order} setOrder={setOrder} onOrderServed={() => setView(View.PAYMENT)} />;
-        }
-      case View.PAYMENT:
-        if (order) {
-            return <PaymentScreen order={order} onPaymentSuccess={handlePaymentSuccess} onFinish={resetApp} />
-        }
-      case View.HOME:
-      default:
-        return <HomeScreen restaurants={restaurants} onSelectRestaurant={onSelectRestaurant} />;
-    }
-  };
-
-  const showFab = (view === View.MENU || view === View.TRACKING || view === View.PAYMENT) && selectedRestaurant;
-
-  const handleServiceRequest = (request: string) => {
-    if (order || (orderContext && orderContext.orderType === 'dine-in')) {
-      onCallServer(request);
-    } else {
-      console.log(`Service Request for non-dine-in order: ${request}`);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-white font-sans text-brand-charcoal w-full max-w-7xl mx-auto shadow-2xl my-4 rounded-lg">
-      <main className="relative">{renderContent()}</main>
-      <footer className="text-center p-4 text-xs text-gray-400">
-        <div className="flex justify-center items-center gap-2 mb-2">
-            <LogoIcon className="h-6 w-6 text-brand-gold" />
-            <p className="font-serif text-lg text-brand-charcoal">ShopFast</p>
-        </div>
-        &copy; {new Date().getFullYear()} ShopFast Restaurant Mode. All rights reserved.
-      </footer>
-      
-      {showFab && (
-          <FloatingActionButton 
-            onClick={() => setIsServiceModalOpen(true)}
-            primaryColor={selectedRestaurant.theme.primaryColor}
-          />
-      )}
-      {isServiceModalOpen && selectedRestaurant && (
-          <ServiceRequestModal
-            isOpen={isServiceModalOpen}
-            onClose={() => setIsServiceModalOpen(false)}
-            serviceRequests={selectedRestaurant.serviceRequests}
-            onSelectRequest={handleServiceRequest}
-            primaryColor={selectedRestaurant.theme.primaryColor}
-          />
-      )}
-    </div>
-  );
 };
 
 
@@ -150,7 +53,6 @@ const App: React.FC = () => {
   const [billingHistory, setBillingHistory] = useState<BillingHistory[]>(BILLING_HISTORY);
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(SUPPORT_TICKETS);
 
-
   // App Routing
   const handleHashChange = useCallback(() => {
     setAppMode(getAppModeFromHash());
@@ -164,12 +66,17 @@ const App: React.FC = () => {
   }, [handleHashChange]);
 
   // Diner App State
-  const [view, setView] = useState<View>(View.HOME);
+  const [view, setView] = useState<View>(View.HOME); // This now controls sub-views like the menu
+  const [activeTab, setActiveTab] = useState<Tab>(Tab.HOME);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [order, setOrder] = useState<Order | null>(null);
   const [isOrderContextModalOpen, setIsOrderContextModalOpen] = useState(false);
   const [orderContext, setOrderContext] = useState<OrderContext | null>(null);
+  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
+
+  // User Auth State
+  const [currentUser, setCurrentUser] = useState<User | null>(() => getFromStorage(CURRENT_USER_STORAGE_KEY, null));
 
   // HQ App State
   const [isHqLoggedIn, setIsHqLoggedIn] = useState(false);
@@ -180,7 +87,7 @@ const App: React.FC = () => {
   const [loggedInRole, setLoggedInRole] = useState<StaffRole | null>(null);
   
   // REAL-TIME STATE (with cross-tab sync)
-  const [liveOrders, setLiveOrders] = useState<Omit<Order, 'restaurant'>[]>(() => getFromStorage(LIVE_ORDERS_STORAGE_KEY, INITIAL_ACTIVE_ORDERS));
+  const [liveOrders, setLiveOrders] = useState<LiveOrder[]>(() => getFromStorage(LIVE_ORDERS_STORAGE_KEY, INITIAL_ACTIVE_ORDERS));
   const [serverAlerts, setServerAlerts] = useState<ServerAlert[]>(() => getFromStorage(SERVER_ALERTS_STORAGE_KEY, []));
 
   // Cross-tab synchronization effect
@@ -192,6 +99,9 @@ const App: React.FC = () => {
       if (e.key === SERVER_ALERTS_STORAGE_KEY && e.newValue) {
         setServerAlerts(JSON.parse(e.newValue));
       }
+      if (e.key === CURRENT_USER_STORAGE_KEY && e.newValue) {
+        setCurrentUser(JSON.parse(e.newValue));
+      }
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -201,15 +111,11 @@ const App: React.FC = () => {
   }, []);
   
   // Custom setters that update both state and localStorage
-  const updateLiveOrders = useCallback((updater: React.SetStateAction<Omit<Order, 'restaurant'>[]>) => {
+  const updateLiveOrders = useCallback((updater: React.SetStateAction<LiveOrder[]>) => {
     setLiveOrders(prevOrders => {
       const newOrders = typeof updater === 'function' ? updater(prevOrders) : updater;
       localStorage.setItem(LIVE_ORDERS_STORAGE_KEY, JSON.stringify(newOrders));
-      // Dispatch a storage event to notify the current tab as well
-      window.dispatchEvent(new StorageEvent('storage', {
-          key: LIVE_ORDERS_STORAGE_KEY,
-          newValue: JSON.stringify(newOrders),
-      }));
+      window.dispatchEvent(new StorageEvent('storage', { key: LIVE_ORDERS_STORAGE_KEY, newValue: JSON.stringify(newOrders) }));
       return newOrders;
     });
   }, []);
@@ -218,16 +124,26 @@ const App: React.FC = () => {
     setServerAlerts(prevAlerts => {
       const newAlerts = typeof updater === 'function' ? updater(prevAlerts) : updater;
       localStorage.setItem(SERVER_ALERTS_STORAGE_KEY, JSON.stringify(newAlerts));
-       window.dispatchEvent(new StorageEvent('storage', {
-          key: SERVER_ALERTS_STORAGE_KEY,
-          newValue: JSON.stringify(newAlerts),
-      }));
+       window.dispatchEvent(new StorageEvent('storage', { key: SERVER_ALERTS_STORAGE_KEY, newValue: JSON.stringify(newAlerts) }));
       return newAlerts;
     });
   }, []);
 
+  const updateUser = useCallback((user: User | null) => {
+    setCurrentUser(user);
+    if (user) {
+        localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(user));
+    } else {
+        localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+    }
+    window.dispatchEvent(new StorageEvent('storage', { key: CURRENT_USER_STORAGE_KEY, newValue: JSON.stringify(user) }));
+  }, []);
+
 
   // Diner App Logic
+  const handleLogin = (user: User) => updateUser(user);
+  const handleLogout = () => updateUser(null);
+
   const handleSelectRestaurant = (restaurant: Restaurant) => {
     setSelectedRestaurant(restaurant);
     setIsOrderContextModalOpen(true);
@@ -236,7 +152,7 @@ const App: React.FC = () => {
   const handleOrderContextSet = (context: OrderContext) => {
     setOrderContext(context);
     setIsOrderContextModalOpen(false);
-    setView(View.MENU);
+    setView(View.MENU); // Switch to menu view
   };
 
   const handleAddToCart = (item: any, quantity: number = 1) => {
@@ -269,7 +185,6 @@ const App: React.FC = () => {
     
     let total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-    // Add delivery fee if applicable
     if (orderContext.orderType === 'delivery' && selectedRestaurant.deliveryConfig?.enabledByAdmin) {
         total += selectedRestaurant.deliveryConfig.deliveryFee;
     }
@@ -279,26 +194,27 @@ const App: React.FC = () => {
       restaurant: selectedRestaurant,
       items: cart,
       total,
-      status: 'Pending', // New orders start as Pending
+      status: 'Pending',
+      userId: currentUser?.id,
       ...orderContext,
     };
     
-    // Set order for the current diner's view
     setOrder(newOrder);
     setCart([]);
-    setView(View.TRACKING);
+    setView(View.HOME); // Reset sub-view
+    setActiveTab(Tab.ORDER); // Switch to order tab
     
-    // Add the order to the live, cross-tab state for the restaurant dashboard
-    const newLiveOrder: Omit<Order, 'restaurant'> = {
+    const newLiveOrder: LiveOrder = {
         id: newOrder.id,
+        restaurantId: selectedRestaurant.id,
         items: newOrder.items,
         total: newOrder.total,
         status: newOrder.status,
+        userId: newOrder.userId,
         ...orderContext,
     };
     updateLiveOrders(prev => [newLiveOrder, ...prev]);
 
-    // Increment order count for the table if it's a dine-in order
     if (newOrder.orderType === 'dine-in' && newOrder.tableNumber) {
       setRestaurants(prev => prev.map(r => {
         if (r.id === selectedRestaurant.id) {
@@ -317,9 +233,8 @@ const App: React.FC = () => {
   const handlePaymentSuccess = () => {
       if (!order) return;
       const finalStatus: OrderStatus = order.orderType === 'delivery' ? 'Delivered' : 'Verified';
-      const updatedOrder = {...order, status: 'Paid' as OrderStatus}; // Show QR screen first
+      const updatedOrder = {...order, status: 'Paid' as OrderStatus};
       setOrder(updatedOrder);
-      // Update the status in the live orders list as well
       updateLiveOrders(prev => prev.map(o => o.id === order.id ? {...o, status: finalStatus} : o));
   };
   
@@ -329,6 +244,7 @@ const App: React.FC = () => {
       setCart([]);
       setOrder(null);
       setOrderContext(null);
+      setActiveTab(Tab.HOME);
       window.location.hash = '';
   };
 
@@ -360,11 +276,9 @@ const App: React.FC = () => {
   };
 
 
-  // HQ App Logic
+  // HQ App Logic (remains unchanged)
   const handleHqLogin = () => setIsHqLoggedIn(true);
-  const handleHqLogout = () => {
-    setIsHqLoggedIn(false);
-  };
+  const handleHqLogout = () => setIsHqLoggedIn(false);
   const handleAddRestaurant = (payload: { restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme' | 'categories' | 'tables' | 'serviceRequests' | 'paymentSettings' | 'nextBillingDate' | 'deliveryConfig'>, adminData: Omit<StaffMember, 'id' | 'restaurantId' | 'role' | 'status'>}) => {
     const { restaurantData, adminData } = payload;
     const newRestaurantId = `r${Date.now()}`;
@@ -374,40 +288,20 @@ const App: React.FC = () => {
       id: newRestaurantId,
       rating: 0,
       distance: 'new',
-      nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
+      nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       categories: ['Starters', 'Mains', 'Desserts', 'Drinks'],
       tables: [],
       serviceRequests: [],
-       paymentSettings: {
-        stripe: { enabled: false },
-        mpesa: { enabled: false },
-        pesapal: { enabled: false }
-      },
-      deliveryConfig: {
-        enabledByAdmin: false,
-        deliveryFee: 0,
-        deliveryRadius: 0,
-        estimatedTime: 0,
-      },
+       paymentSettings: { stripe: { enabled: false }, mpesa: { enabled: false }, pesapal: { enabled: false } },
+      deliveryConfig: { enabledByAdmin: false, deliveryFee: 0, deliveryRadius: 0, estimatedTime: 0, },
       theme: {
           welcomeMessage: `Welcome to ${restaurantData.name}!`,
-          primaryColor: '#C5A052', // Default gold
-          dailySpecial: {
-            title: '',
-            description: '',
-            active: false,
-          }
+          primaryColor: '#8A5DFF',
+          dailySpecial: { title: '', description: '', active: false, }
       }
     };
     
-    const newAdmin: StaffMember = {
-        ...adminData,
-        id: `s${Date.now()}`,
-        restaurantId: newRestaurantId,
-        role: StaffRole.ADMIN,
-        status: 'active'
-    };
-    
+    const newAdmin: StaffMember = { ...adminData, id: `s${Date.now()}`, restaurantId: newRestaurantId, role: StaffRole.ADMIN, status: 'active' };
     setRestaurants(prev => [newRestaurant, ...prev]);
     setStaff(prev => [...prev, newAdmin]);
     setMenus(prev => ({ ...prev, [newRestaurantId]: [] }));
@@ -419,14 +313,9 @@ const App: React.FC = () => {
     }
   };
    const handleAddStaffMember = (staffData: Omit<StaffMember, 'id' | 'status'>) => {
-    const newStaffMember: StaffMember = {
-      ...staffData,
-      id: `s${Date.now()}`,
-      status: 'active',
-    };
+    const newStaffMember: StaffMember = { ...staffData, id: `s${Date.now()}`, status: 'active' };
     setStaff(prev => [...prev, newStaffMember]);
   };
-
   const handleDeleteRestaurant = (restaurantId: string) => {
     setRestaurants(prev => prev.filter(r => r.id !== restaurantId));
     setStaff(prev => prev.filter(s => s.restaurantId !== restaurantId));
@@ -436,62 +325,34 @@ const App: React.FC = () => {
       return newMenus;
     });
   };
-
   const handleUpdateStaffMember = (updatedStaff: StaffMember) => {
     setStaff(prev => prev.map(s => s.id === updatedStaff.id ? updatedStaff : s));
   };
-
   const handleDeleteStaffMember = (staffId: string) => {
     setStaff(prev => prev.filter(s => s.id !== staffId));
   };
-
   const handleAddMenuItem = (restaurantId: string, newItemData: Omit<MenuItem, 'id'>) => {
-    const newItem: MenuItem = {
-      ...newItemData,
-      id: `m-${restaurantId}-${Date.now()}`,
-    };
-    setMenus(prevMenus => ({
-      ...prevMenus,
-      [restaurantId]: [...(prevMenus[restaurantId] || []), newItem],
-    }));
+    const newItem: MenuItem = { ...newItemData, id: `m-${restaurantId}-${Date.now()}` };
+    setMenus(prevMenus => ({ ...prevMenus, [restaurantId]: [...(prevMenus[restaurantId] || []), newItem] }));
   };
-
   const handleUpdateMenuItem = (restaurantId: string, updatedItem: MenuItem) => {
-    setMenus(prevMenus => ({
-      ...prevMenus,
-      [restaurantId]: prevMenus[restaurantId].map(item => item.id === updatedItem.id ? updatedItem : item)
-    }));
+    setMenus(prevMenus => ({ ...prevMenus, [restaurantId]: prevMenus[restaurantId].map(item => item.id === updatedItem.id ? updatedItem : item) }));
   };
-
   const handleDeleteMenuItem = (restaurantId: string, itemId: string) => {
-    setMenus(prevMenus => ({
-      ...prevMenus,
-      [restaurantId]: prevMenus[restaurantId].filter(item => item.id !== itemId),
-    }));
+    setMenus(prevMenus => ({ ...prevMenus, [restaurantId]: prevMenus[restaurantId].filter(item => item.id !== itemId) }));
   };
-
   const handleUpdateTicketStatus = (ticketId: string, newStatus: TicketStatus) => {
     setSupportTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: newStatus } : t));
   };
   
-  // Restaurant App Logic
+  // Restaurant App Logic (remains unchanged)
   const handleRestaurantLogin = (restaurantId: string, name: string, pin: string) => {
     const restaurant = restaurants.find(r => r.id === restaurantId);
-    if (!restaurant) {
-      alert('Restaurant not found.');
-      return;
-    }
-    if (restaurant.status === 'disabled') {
-      alert('This restaurant account is currently suspended. Please contact HQ.');
-      return;
-    }
-
+    if (!restaurant) { alert('Restaurant not found.'); return; }
+    if (restaurant.status === 'disabled') { alert('This restaurant account is currently suspended. Please contact HQ.'); return; }
     const staffMember = staff.find(s => s.restaurantId === restaurantId && s.name.toLowerCase() === name.toLowerCase() && s.pin === pin);
     if (staffMember) {
-        if (staffMember.status === 'suspended') {
-            alert('Your account has been suspended. Please contact your administrator.');
-            return;
-        }
+        if (staffMember.status === 'suspended') { alert('Your account has been suspended. Please contact your administrator.'); return; }
         setLoggedInRestaurant(restaurant);
         setLoggedInRole(staffMember.role);
     } else {
@@ -502,83 +363,83 @@ const App: React.FC = () => {
     setLoggedInRestaurant(null);
     setLoggedInRole(null);
   };
-
   const handleAcceptOrder = (orderId: string, prepTime: number) => {
-    updateLiveOrders(prev => prev.map(o => 
-        o.id === orderId 
-        ? { ...o, status: 'Received', preparationTime: prepTime, acceptedAt: Date.now() } 
-        : o
-    ));
+    updateLiveOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'Received', preparationTime: prepTime, acceptedAt: Date.now() } : o ));
   };
-  
   const handleUpdateOrderStatus = (orderId: string, newStatus: OrderStatus) => {
     updateLiveOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+  };
+
+  const renderDinerContent = () => {
+    if (view === View.MENU && selectedRestaurant) {
+      return (
+        <MenuScreen
+          restaurant={selectedRestaurant}
+          menu={menus[selectedRestaurant.id]}
+          cart={cart}
+          orderContext={orderContext}
+          onAddToCart={handleAddToCart}
+          onUpdateCartQuantity={handleUpdateCartQuantity}
+          onPlaceOrder={handlePlaceOrder}
+          onBack={handleBackToHome}
+          onCallServer={handleCallServer}
+        />
+      );
+    }
+
+    // Main tabbed view
+    return (
+      <div className="min-h-screen font-sans w-full">
+        <main className={`relative ${activeTab !== Tab.HOME ? 'container mx-auto px-4 py-8' : ''}`}>
+            {activeTab === Tab.HOME && <HomePage restaurants={restaurants} onSelectRestaurant={handleSelectRestaurant} />}
+            {activeTab === Tab.DISCOVER && <DiscoverScreen restaurants={restaurants} onSelectRestaurant={handleSelectRestaurant} />}
+            {activeTab === Tab.ORDER && (
+                <OrderPage 
+                    order={order}
+                    setOrder={setOrder}
+                    onPaymentSuccess={handlePaymentSuccess}
+                    resetApp={resetApp}
+                />
+            )}
+            {activeTab === Tab.PROFILE && <ProfileScreen user={currentUser} onLogin={handleLogin} onLogout={handleLogout} orders={liveOrders} restaurants={restaurants} />}
+        </main>
+        <BottomNavBar activeTab={activeTab} onTabChange={setActiveTab} hasActiveOrder={!!order} />
+      </div>
+    );
   };
 
 
   const renderApp = () => {
     switch(appMode) {
       case 'hq':
-        if (!isHqLoggedIn) {
-          return <HQLoginScreen onLogin={handleHqLogin} />;
-        }
+        if (!isHqLoggedIn) return <HQLoginScreen onLogin={handleHqLogin} />;
         return <HQDashboard 
-                  restaurants={restaurants} 
-                  staff={staff}
-                  billingHistory={billingHistory}
-                  supportTickets={supportTickets}
-                  onUpdateTicketStatus={handleUpdateTicketStatus}
-                  onLogout={handleHqLogout}
-                  onAddRestaurant={handleAddRestaurant} 
-                  onUpdateRestaurant={handleUpdateRestaurant}
-                  onDeleteRestaurant={handleDeleteRestaurant}
-                  onAddStaffMember={handleAddStaffMember}
+                  restaurants={restaurants} staff={staff} billingHistory={billingHistory} supportTickets={supportTickets}
+                  onUpdateTicketStatus={handleUpdateTicketStatus} onLogout={handleHqLogout} onAddRestaurant={handleAddRestaurant} 
+                  onUpdateRestaurant={handleUpdateRestaurant} onDeleteRestaurant={handleDeleteRestaurant} onAddStaffMember={handleAddStaffMember}
                />;
       case 'restaurant':
-        if (!loggedInRestaurant || !loggedInRole) {
-          return <RestaurantLoginScreen restaurants={restaurants} onLogin={handleRestaurantLogin} />;
-        }
+        if (!loggedInRestaurant || !loggedInRole) return <RestaurantLoginScreen restaurants={restaurants} onLogin={handleRestaurantLogin} />;
         return <RestaurantDashboard 
-                  restaurant={loggedInRestaurant} 
-                  role={loggedInRole} 
-                  staff={staff}
-                  menu={menus[loggedInRestaurant.id] || []}
-                  liveOrders={liveOrders}
-                  onUpdateLiveOrders={updateLiveOrders}
-                  onAcceptOrder={handleAcceptOrder}
-                  onUpdateOrderStatus={handleUpdateOrderStatus}
-                  serverAlerts={serverAlerts.filter(a => a.restaurantId === loggedInRestaurant.id)}
-                  onResolveAlert={handleResolveAlert}
-                  onAddStaffMember={handleAddStaffMember}
-                  onUpdateStaffMember={handleUpdateStaffMember}
-                  onDeleteStaffMember={handleDeleteStaffMember}
-                  onUpdateRestaurant={handleUpdateRestaurant}
+                  restaurant={loggedInRestaurant} role={loggedInRole} staff={staff} menu={menus[loggedInRestaurant.id] || []}
+                  liveOrders={liveOrders} onUpdateLiveOrders={updateLiveOrders} onAcceptOrder={handleAcceptOrder}
+                  onUpdateOrderStatus={handleUpdateOrderStatus} serverAlerts={serverAlerts.filter(a => a.restaurantId === loggedInRestaurant.id)}
+                  onResolveAlert={handleResolveAlert} onAddStaffMember={handleAddStaffMember} onUpdateStaffMember={handleUpdateStaffMember}
+                  onDeleteStaffMember={handleDeleteStaffMember} onUpdateRestaurant={handleUpdateRestaurant}
                   onAddMenuItem={(item) => handleAddMenuItem(loggedInRestaurant.id, item)}
                   onUpdateMenuItem={(item) => handleUpdateMenuItem(loggedInRestaurant.id, item)}
                   onDeleteMenuItem={(itemId) => handleDeleteMenuItem(loggedInRestaurant.id, itemId)}
-                  reportData={restaurantReports[loggedInRestaurant.id]}
-                  onLogout={handleRestaurantLogout} 
+                  reportData={restaurantReports[loggedInRestaurant.id]} onLogout={handleRestaurantLogout} 
                />;
       case 'diner':
       default:
-        const dinerAppProps = {
-          restaurants, onSelectRestaurant: handleSelectRestaurant, selectedRestaurant, 
-          menu: selectedRestaurant ? menus[selectedRestaurant.id] : [],
-          view, cart, handleAddToCart, handleUpdateCartQuantity, handlePlaceOrder, 
-          handleBackToHome, order, setOrder, setView, handlePaymentSuccess, resetApp,
-          onCallServer: handleCallServer,
-          orderContext,
-        };
         return (
           <>
-            <DinerApp {...dinerAppProps} />
+            {renderDinerContent()}
             {isOrderContextModalOpen && selectedRestaurant && (
                 <OrderContextModal
                     restaurant={selectedRestaurant}
-                    onClose={() => {
-                        setIsOrderContextModalOpen(false);
-                        setSelectedRestaurant(null);
-                    }}
+                    onClose={() => { setIsOrderContextModalOpen(false); setSelectedRestaurant(null); }}
                     onSubmit={handleOrderContextSet}
                 />
             )}

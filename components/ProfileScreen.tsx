@@ -1,0 +1,157 @@
+import React, { useState, useMemo } from 'react';
+import { User, LiveOrder, Restaurant } from '../types';
+import { LogOutIcon, UserCircleIcon } from './Icons';
+import UsageStats from './UsageStats';
+import OrderHistoryCard from './OrderHistoryCard';
+
+// Mock Screens for now
+const LoginScreen: React.FC<{ onLogin: (user: User) => void, onSwitchToSignUp: () => void }> = ({ onLogin, onSwitchToSignUp }) => {
+    const handleLogin = (e: React.FormEvent) => {
+        e.preventDefault();
+        // Mock login
+        onLogin({ id: 'u1', name: 'Gilbert', email: 'gilbert@example.com', orderHistory: [] });
+    };
+
+    return (
+        <div className="w-full max-w-md p-8 space-y-8 glass-card rounded-2xl">
+            <div className="text-center">
+                <UserCircleIcon className="w-16 h-16 mx-auto text-copy-lighter" />
+                <h1 className="font-sans text-3xl font-bold text-copy mt-4">Login</h1>
+                <p className="text-copy-light">Access your profile and order history.</p>
+            </div>
+            <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+                <input type="email" placeholder="Email (e.g. gilbert@example.com)" className="w-full shadcn-input" required defaultValue="gilbert@example.com" />
+                <input type="password" placeholder="Password" className="w-full shadcn-input" required defaultValue="password" />
+                <button type="submit" className="w-full bg-primary text-brand-charcoal font-bold py-3 rounded-lg shadow-glow-primary">
+                    Login
+                </button>
+                <p className="text-center text-sm">
+                    <button type="button" onClick={onSwitchToSignUp} className="font-medium text-primary hover:underline">
+                        Don't have an account? Sign up
+                    </button>
+                </p>
+            </form>
+        </div>
+    );
+};
+
+const SignUpScreen: React.FC<{ onSignUp: (user: User) => void, onSwitchToLogin: () => void }> = ({ onSignUp, onSwitchToLogin }) => {
+     const handleSignUp = (e: React.FormEvent) => {
+        e.preventDefault();
+        // Mock signup
+        onSignUp({ id: 'u1', name: 'Gilbert', email: 'gilbert@example.com', orderHistory: [] });
+    };
+    return (
+         <div className="w-full max-w-md p-8 space-y-8 glass-card rounded-2xl">
+            <div className="text-center">
+                <UserCircleIcon className="w-16 h-16 mx-auto text-copy-lighter" />
+                <h1 className="font-sans text-3xl font-bold text-copy mt-4">Create Account</h1>
+                 <p className="text-copy-light">Join to get a personalized experience.</p>
+            </div>
+            <form className="mt-8 space-y-6" onSubmit={handleSignUp}>
+                <input type="text" placeholder="Full Name" className="w-full shadcn-input" required />
+                <input type="email" placeholder="Email" className="w-full shadcn-input" required />
+                <input type="password" placeholder="Password" className="w-full shadcn-input" required />
+                <button type="submit" className="w-full bg-primary text-brand-charcoal font-bold py-3 rounded-lg shadow-glow-primary">
+                    Sign Up
+                </button>
+                 <p className="text-center text-sm">
+                    <button type="button" onClick={onSwitchToLogin} className="font-medium text-primary hover:underline">
+                        Already have an account? Login
+                    </button>
+                </p>
+            </form>
+        </div>
+    );
+}
+
+interface ProfileScreenProps {
+  user: User | null;
+  onLogin: (user: User) => void;
+  onLogout: () => void;
+  orders: LiveOrder[];
+  restaurants: Restaurant[];
+}
+
+const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onLogin, onLogout, orders, restaurants }) => {
+    const [showLogin, setShowLogin] = useState(true);
+
+    const { userOrders, totalSpent, favoriteRestaurant } = useMemo(() => {
+        if (!user) {
+            return { userOrders: [], totalSpent: 0, favoriteRestaurant: 'N/A' };
+        }
+
+        const userOrders = orders.filter(o => o.userId === user.id);
+        const totalSpent = userOrders.reduce((sum, order) => sum + order.total, 0);
+
+        if (userOrders.length === 0) {
+            return { userOrders, totalSpent, favoriteRestaurant: 'N/A' };
+        }
+
+        const restaurantCounts = userOrders.reduce((acc, order) => {
+            acc[order.restaurantId] = (acc[order.restaurantId] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+
+        const favoriteId = Object.keys(restaurantCounts).reduce((a, b) => restaurantCounts[a] > restaurantCounts[b] ? a : b);
+        const favoriteRestaurant = restaurants.find(r => r.id === favoriteId)?.name || 'N/A';
+        
+        return { userOrders, totalSpent, favoriteRestaurant };
+
+    }, [user, orders, restaurants]);
+
+
+    if (!user) {
+        return (
+            <div className="min-h-screen flex items-center justify-center p-4 pb-28">
+                {showLogin ? (
+                    <LoginScreen onLogin={onLogin} onSwitchToSignUp={() => setShowLogin(false)} />
+                ) : (
+                    <SignUpScreen onSignUp={onLogin} onSwitchToLogin={() => setShowLogin(true)} />
+                )}
+            </div>
+        );
+    }
+
+    return (
+         <div className="min-h-screen pt-16 pb-28 px-6">
+            <div className="text-center mb-8">
+                <UserCircleIcon className="w-24 h-24 mx-auto text-copy-lighter mb-4" />
+                <h1 className="text-3xl font-bold text-copy">{user.name}</h1>
+                <p className="text-copy-light">{user.email}</p>
+            </div>
+
+            <UsageStats 
+                totalSpent={totalSpent}
+                orderCount={userOrders.length}
+                favoriteRestaurant={favoriteRestaurant}
+            />
+
+            <div className="mt-8">
+                <h2 className="text-xl font-bold text-copy mb-4">Order History</h2>
+                {userOrders.length > 0 ? (
+                    <div className="space-y-4">
+                        {userOrders.map(order => {
+                            const restaurant = restaurants.find(r => r.id === order.restaurantId);
+                            if (!restaurant) return null;
+                            return <OrderHistoryCard key={order.id} order={order} restaurant={restaurant} />;
+                        })}
+                    </div>
+                ) : (
+                    <div className="glass-card rounded-2xl p-6 text-center text-copy-light">
+                        <p>Your past orders will appear here.</p>
+                    </div>
+                )}
+            </div>
+
+            <div className="mt-8">
+                <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 bg-surface text-brand-red font-bold py-3 px-4 rounded-lg border border-surface-light hover:bg-red-900/20 transition">
+                    <LogOutIcon className="w-5 h-5" />
+                    Logout
+                </button>
+            </div>
+        </div>
+    );
+};
+
+export default ProfileScreen;

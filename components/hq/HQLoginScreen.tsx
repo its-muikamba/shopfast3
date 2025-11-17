@@ -7,34 +7,34 @@ interface HQLoginScreenProps {
 
 const HQLoginScreen: React.FC<HQLoginScreenProps> = ({ onLogin }) => {
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white shadow-xl rounded-2xl">
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-md p-8 space-y-8 glass-card rounded-2xl">
         <div className="text-center">
           <div className="flex justify-center items-center gap-2 mb-4">
-            <LogoIcon className="h-10 w-10 text-brand-gold" />
-            <h1 className="font-serif text-3xl font-bold text-brand-charcoal">ShopFast HQ</h1>
+            <LogoIcon className="h-10 w-10 text-primary" />
+            <h1 className="font-sans text-3xl font-bold text-copy">ShopFast HQ</h1>
           </div>
-          <p className="text-gray-500">SuperAdmin SaaS Management Panel</p>
+          <p className="text-copy-light">SuperAdmin SaaS Management Panel</p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={(e) => { e.preventDefault(); onLogin(); }}>
-          <div className="rounded-md shadow-sm -space-y-px">
+          <div className="space-y-4">
             <div>
               <label htmlFor="email-address" className="sr-only">Email address</label>
               <input id="email-address" name="email" type="email" autoComplete="email" required 
-                     className="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-brand-gold focus:border-brand-gold focus:z-10 sm:text-sm" 
+                     className="w-full shadcn-input" 
                      placeholder="Email address" defaultValue="admin@shopfast.co" />
             </div>
             <div>
               <label htmlFor="password" className="sr-only">Password</label>
               <input id="password" name="password" type="password" autoComplete="current-password" required 
-                     className="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-brand-gold focus:border-brand-gold focus:z-10 sm:text-sm" 
+                     className="w-full shadcn-input" 
                      placeholder="Password" defaultValue="password" />
             </div>
           </div>
 
           <div>
             <button type="submit" 
-                    className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand-charcoal hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-gold transition-colors">
+                    className="group relative w-full flex justify-center py-3 px-4 text-sm font-medium rounded-md text-brand-charcoal bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors shadow-glow-primary">
               Sign in
             </button>
           </div>

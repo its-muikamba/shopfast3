@@ -2,13 +2,16 @@ import React from 'react';
 import { CheckCircleIcon, ShoppingCartIcon, CreditCardIcon, StarIcon } from '../Icons';
 
 const MetricCard: React.FC<{ title: string; value: string | number; icon: React.ElementType, color: string }> = ({ title, value, icon: Icon, color }) => (
-    <div className="bg-white p-6 rounded-lg shadow-md flex items-center">
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${color}`}>
-            <Icon className="w-6 h-6 text-white" />
-        </div>
-        <div className="ml-4">
-            <p className="text-sm text-gray-500">{title}</p>
-            <p className="text-2xl font-bold text-brand-charcoal">{value}</p>
+    <div className="glass-card p-6 rounded-lg">
+        <div className="flex items-center">
+            <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${color}`}>
+                <Icon className="w-6 h-6 text-white" />
+            </div>
+            <div className="ml-4">
+                <p className="text-sm text-copy-light">{title}</p>
+
+                <p className="text-2xl font-bold text-copy">{value}</p>
+            </div>
         </div>
     </div>
 );
@@ -44,16 +47,16 @@ const RestaurantAdminOverview: React.FC = () => {
             />
         </div>
          <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="text-xl font-bold text-brand-charcoal mb-4">Best Selling Items</h3>
-                <div className="h-64 bg-gray-200 rounded-md flex items-center justify-center">
-                    <p className="text-gray-500">Sales chart will be displayed here.</p>
+            <div className="glass-card p-6 rounded-lg">
+                <h3 className="text-xl font-bold text-copy mb-4">Best Selling Items</h3>
+                <div className="h-64 bg-surface/50 rounded-md flex items-center justify-center">
+                    <p className="text-copy-light">Sales chart will be displayed here.</p>
                 </div>
             </div>
-             <div className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="text-xl font-bold text-brand-charcoal mb-4">Recent Feedback</h3>
-                <div className="h-64 bg-gray-200 rounded-md flex items-center justify-center">
-                    <p className="text-gray-500">Customer ratings will be displayed here.</p>
+             <div className="glass-card p-6 rounded-lg">
+                <h3 className="text-xl font-bold text-copy mb-4">Recent Feedback</h3>
+                <div className="h-64 bg-surface/50 rounded-md flex items-center justify-center">
+                    <p className="text-copy-light">Customer ratings will be displayed here.</p>
                 </div>
             </div>
         </div>
