@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Order, OrderStatus, Table, ServerAlert, Restaurant } from '../../types';
 import { ArmchairIcon, CheckCircleIcon, ShoppingCartIcon } from '../Icons';
 
@@ -14,6 +14,26 @@ const statusColors: Record<OrderStatus, { bg: string, text: string, border: stri
     'Verified': { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-500' },
 };
 
+const TableGraphic: React.FC<{ capacity: number; tableNumber: number; }> = ({ capacity, tableNumber }) => {
+    const topChairsCount = Math.ceil(capacity / 2);
+    const bottomChairsCount = Math.floor(capacity / 2);
+
+    return (
+        <div className="flex flex-col items-center justify-center p-2">
+            <div className="flex gap-1">
+                {Array.from({ length: topChairsCount }).map((_, i) => <ArmchairIcon key={`top-${i}`} className="w-5 h-5 text-copy-light" />)}
+            </div>
+            <div className="w-full h-10 my-1 bg-surface rounded-lg flex items-center justify-center font-bold text-lg text-copy-rich border border-border">
+                {tableNumber}
+            </div>
+            <div className="flex gap-1">
+                {Array.from({ length: bottomChairsCount }).map((_, i) => <ArmchairIcon key={`bottom-${i}`} className="w-5 h-5 text-copy-light" />)}
+            </div>
+        </div>
+    );
+};
+
+
 const TableRepresentation: React.FC<{
     table: Table;
     order: Omit<Order, 'restaurant'> | undefined;
@@ -24,10 +44,10 @@ const TableRepresentation: React.FC<{
 
     const getStatusStyles = () => {
         if (alert) {
-            return 'bg-red-500/10 border-red-500 shadow-lg animate-pulse-glow-red';
+            return 'bg-brand-orange/10 border-brand-orange shadow-lg animate-pulse-glow-orange';
         }
         if (order?.status === 'On Route') {
-             return 'bg-green-500/10 border-green-500 shadow-lg animate-pulse-glow-green';
+             return 'bg-green-500/10 border-green-500';
         }
         if (order) {
             return 'bg-yellow-500/10 border-yellow-400';
@@ -36,38 +56,46 @@ const TableRepresentation: React.FC<{
     };
 
     const statusText = alert ? "Needs Attention" : order ? "Occupied" : "Available";
+    
+    const [elapsedTime, setElapsedTime] = useState<string | null>(null);
+
+    useEffect(() => {
+        let intervalId: number;
+        if (order && order.acceptedAt) {
+            const updateTimer = () => {
+                const elapsedSeconds = Math.floor((Date.now() - order.acceptedAt!) / 1000);
+                const mins = Math.floor(elapsedSeconds / 60).toString().padStart(2, '0');
+                const secs = (elapsedSeconds % 60).toString().padStart(2, '0');
+                setElapsedTime(`${mins}:${secs}`);
+            };
+            updateTimer();
+            intervalId = window.setInterval(updateTimer, 1000);
+        } else {
+            setElapsedTime(null);
+        }
+        return () => window.clearInterval(intervalId);
+    }, [order]);
+
 
     return (
         <div className={`rounded-lg border-2 p-3 flex flex-col justify-between transition-all duration-300 ${getStatusStyles()}`}>
-            <div>
-                <div className="flex justify-between items-center mb-1">
-                    <h3 className="font-bold text-lg text-copy-rich">Table {table.number}</h3>
-                    <span className="text-xs font-semibold text-copy-light">{statusText}</span>
-                </div>
-                <div className="flex items-center text-sm text-copy-light gap-3">
-                    <div className="flex items-center">
-                        <ArmchairIcon className="w-4 h-4 mr-1" />
-                        <span>{table.capacity} seats</span>
-                    </div>
-                    <div className="flex items-center">
-                        <ShoppingCartIcon className="w-4 h-4 mr-1" />
-                        <span>{table.orderCount} orders</span>
-                    </div>
-                </div>
-            </div>
-            <div className="mt-2 border-t pt-2 space-y-2 border-border">
+            <TableGraphic capacity={table.capacity} tableNumber={table.number} />
+            
+            <div className="mt-2 border-t pt-2 space-y-2 border-border text-center">
+                 <span className="text-xs font-semibold text-copy-light">{statusText}</span>
                 {alert && (
-                    <div className="bg-red-500/20 p-2 rounded-md">
-                        <p className="text-sm font-bold text-red-500 text-center animate-pulse">{alert.request}</p>
-                        <button onClick={() => onResolveAlert(alert.id)} className="w-full text-xs mt-2 bg-red-500 text-white font-semibold py-1 px-2 rounded-md hover:bg-red-600 transition">
+                    <div className="bg-brand-orange/20 p-2 rounded-md">
+                        <p className="text-sm font-bold text-brand-orange text-center animate-pulse">{alert.request}</p>
+                        <button onClick={() => onResolveAlert(alert.id)} className="w-full text-xs mt-2 bg-brand-orange text-white font-semibold py-1 px-2 rounded-md hover:bg-opacity-80 transition">
                             Resolve
                         </button>
                     </div>
                 )}
                 {order && (
-                     <div className="text-xs space-y-1 text-copy-light">
+                     <div className="text-xs space-y-1 text-copy-light text-left">
                         <p><strong>Order:</strong> {order.id.slice(-6)}</p>
                         <p><strong>Status:</strong> <span className={`font-semibold ${statusColors[order.status].text}`}>{order.status}</span></p>
+                         {elapsedTime && <p><strong>Time:</strong> <span className="font-mono">{elapsedTime}</span></p>}
                         {order.status === 'On Route' && (
                              <button onClick={() => onUpdateOrderStatus(order.id, 'Served')} className="w-full text-xs mt-1 bg-brand-emerald text-white font-semibold py-1 px-2 rounded-md hover:bg-opacity-80 transition flex items-center justify-center gap-1">
                                 <CheckCircleIcon className="w-3 h-3" /> Mark as Served
@@ -116,20 +144,6 @@ const ServerView: React.FC<ServerViewProps> = ({ restaurant, liveOrders, serverA
 
     return (
         <div className="space-y-8">
-            <style>
-                {`
-                    @keyframes pulse-glow-red {
-                        0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-                        50% { box-shadow: 0 0 10px 5px rgba(239, 68, 68, 0); }
-                    }
-                     @keyframes pulse-glow-green {
-                        0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
-                        50% { box-shadow: 0 0 10px 5px rgba(22, 163, 74, 0); }
-                    }
-                    .animate-pulse-glow-red { animation: pulse-glow-red 2s infinite; }
-                    .animate-pulse-glow-green { animation: pulse-glow-green 2s infinite; }
-                `}
-            </style>
             <div>
                 <h2 className="text-xl font-bold text-copy-rich mb-4 border-b pb-2 border-border">Main Dining</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">

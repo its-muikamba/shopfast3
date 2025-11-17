@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Order, OrderStatus } from '../../types';
 import { XIcon } from '../Icons';
 
@@ -27,6 +27,29 @@ const AcceptOrderModal: React.FC<{
     );
 };
 
+const Timer: React.FC<{ acceptedAt: number; preparationTime: number }> = ({ acceptedAt, preparationTime }) => {
+    const [elapsedSeconds, setElapsedSeconds] = useState(Math.floor((Date.now() - acceptedAt) / 1000));
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setElapsedSeconds(Math.floor((Date.now() - acceptedAt) / 1000));
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [acceptedAt]);
+
+    const minutes = Math.floor(elapsedSeconds / 60).toString().padStart(2, '0');
+    const seconds = (elapsedSeconds % 60).toString().padStart(2, '0');
+
+    const isOverdue = elapsedSeconds > preparationTime * 60;
+
+    return (
+        <div className={`text-sm font-mono mt-2 font-semibold ${isOverdue ? 'text-red-500' : 'text-copy-light'}`}>
+            Time: {minutes}:{seconds}
+        </div>
+    );
+};
+
+
 const OrderTicket: React.FC<{ order: Omit<Order, 'restaurant'>, onAcceptClick?: () => void }> = ({ order, onAcceptClick }) => {
     const isDineIn = order.orderType === 'dine-in' && order.tableNumber;
     const headerText = isDineIn ? `Table ${order.tableNumber}` : order.orderType.charAt(0).toUpperCase() + order.orderType.slice(1);
@@ -51,6 +74,11 @@ const OrderTicket: React.FC<{ order: Omit<Order, 'restaurant'>, onAcceptClick?: 
                 >
                     Accept
                 </button>
+            )}
+            {(order.status === 'Preparing' || order.status === 'Received' || order.status === 'On Route') && order.acceptedAt && order.preparationTime && (
+                 <div className="mt-2 pt-2 border-t border-border">
+                    <Timer acceptedAt={order.acceptedAt} preparationTime={order.preparationTime} />
+                </div>
             )}
         </div>
     );
