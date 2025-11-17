@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Order, OrderStatus } from '../../types';
 import { XIcon } from '../Icons';
@@ -12,16 +11,16 @@ const AcceptOrderModal: React.FC<{
     if (!isOpen) return null;
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 relative">
-                <button onClick={onClose} className="absolute top-3 right-3 text-gray-400 hover:text-black"><XIcon className="w-5 h-5" /></button>
-                <h3 className="text-lg font-semibold mb-4 text-gray-900">Accept Order</h3>
-                <p className="text-sm text-gray-600 mb-4">Set the estimated preparation time for this order.</p>
+            <div className="bg-surface rounded-lg shadow-xl w-full max-w-sm p-6 relative border border-border">
+                <button onClick={onClose} className="absolute top-3 right-3 text-copy-lighter hover:text-copy-rich"><XIcon className="w-5 h-5" /></button>
+                <h3 className="text-lg font-semibold mb-4 text-copy-rich">Accept Order</h3>
+                <p className="text-sm text-copy-light mb-4">Set the estimated preparation time for this order.</p>
                 <div className="flex items-center justify-center gap-4 my-6">
-                    <button onClick={() => setPrepTime(p => Math.max(5, p - 5))} className="w-12 h-12 rounded-full bg-gray-200 text-2xl">-</button>
-                    <span className="text-4xl font-bold w-24 text-center text-gray-900">{prepTime}</span>
-                    <button onClick={() => setPrepTime(p => p + 5)} className="w-12 h-12 rounded-full bg-gray-200 text-2xl">+</button>
+                    <button onClick={() => setPrepTime(p => Math.max(5, p - 5))} className="w-12 h-12 rounded-full bg-surface-light text-2xl text-copy-rich">-</button>
+                    <span className="text-4xl font-bold w-24 text-center text-copy-rich">{prepTime}</span>
+                    <button onClick={() => setPrepTime(p => p + 5)} className="w-12 h-12 rounded-full bg-surface-light text-2xl text-copy-rich">+</button>
                 </div>
-                <p className="text-center text-gray-500 mb-6 -mt-2">minutes</p>
+                <p className="text-center text-copy-light mb-6 -mt-2">minutes</p>
                 <button onClick={() => onConfirm(prepTime)} className="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700">Accept & Start Preparing</button>
             </div>
         </div>
@@ -33,14 +32,14 @@ const OrderTicket: React.FC<{ order: Omit<Order, 'restaurant'>, onAcceptClick?: 
     const headerText = isDineIn ? `Table ${order.tableNumber}` : order.orderType.charAt(0).toUpperCase() + order.orderType.slice(1);
 
     return (
-        <div className="bg-white p-3 rounded-lg shadow border border-gray-200">
+        <div className="bg-surface-raised p-3 rounded-lg shadow-md border border-border">
             <div className="flex justify-between items-center mb-2">
-                <h4 className="font-bold text-gray-800">{headerText}</h4>
-                <span className="text-xs text-gray-400 font-mono">ORD-{order.id.slice(-6)}</span>
+                <h4 className="font-bold text-copy-rich">{headerText}</h4>
+                <span className="text-xs text-copy-lighter font-mono">ORD-{order.id.slice(-6)}</span>
             </div>
-            <div className="space-y-1 border-t pt-2">
+            <div className="space-y-1 border-t pt-2 border-border">
                 {order.items.map(item => (
-                    <p key={item.id} className="text-sm text-gray-700">
+                    <p key={item.id} className="text-sm text-copy">
                         <span className="font-semibold">{item.quantity}x</span> {item.name}
                     </p>
                 ))}
@@ -78,11 +77,11 @@ const KitchenColumn: React.FC<{
 
     return (
         <div 
-            className="bg-gray-100/50 rounded-xl p-3 flex-1 min-w-[300px] max-w-[400px] flex flex-col"
+            className="bg-surface rounded-xl p-3 flex-1 min-w-[300px] max-w-[400px] flex flex-col border border-border"
             onDragOver={handleDragOver}
             onDrop={handleDrop}
         >
-            <h3 className="font-bold text-lg text-gray-800 mb-4 text-center px-2 py-1">{title} ({count})</h3>
+            <h3 className="font-bold text-lg text-copy-rich mb-4 text-center px-2 py-1">{title} ({count})</h3>
             <div className="space-y-3 h-full overflow-y-auto p-1">
                 {children}
             </div>
@@ -125,9 +124,8 @@ const KitchenView: React.FC<KitchenViewProps> = ({ orders, onUpdateOrders, onAcc
     const readyForPickupOrders = orders.filter(o => o.status === 'On Route' || o.status === 'Out for Delivery');
 
     return (
-        <div className="h-full bg-gray-50 p-6 rounded-lg -m-8 flex flex-col">
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">Kitchen View</h1>
-            <div className="flex gap-6 flex-1">
+        <div className="h-full -m-8 flex flex-col">
+            <div className="flex gap-6 flex-1 p-8">
                 <KitchenColumn title="New Orders" count={newOrders.length}>
                     {newOrders.map(order => (
                         <OrderTicket key={order.id} order={order} onAcceptClick={() => setOrderToAccept(order.id)} />

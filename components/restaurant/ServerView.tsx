@@ -7,7 +7,6 @@ const statusColors: Record<OrderStatus, { bg: string, text: string, border: stri
     'Received': { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-500' },
     'Preparing': { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-500' },
     'On Route': { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-500' },
-    // FIX: Add missing 'Out for Delivery' and 'Delivered' statuses to align with the OrderStatus type.
     'Out for Delivery': { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-500' },
     'Served': { bg: 'bg-emerald-100', text: 'text-emerald-800', border: 'border-emerald-500' },
     'Delivered': { bg: 'bg-emerald-100', text: 'text-emerald-800', border: 'border-emerald-500' },
@@ -25,15 +24,15 @@ const TableRepresentation: React.FC<{
 
     const getStatusStyles = () => {
         if (alert) {
-            return 'bg-red-100 border-red-500 shadow-lg animate-pulse-glow-red';
+            return 'bg-red-500/10 border-red-500 shadow-lg animate-pulse-glow-red';
         }
         if (order?.status === 'On Route') {
-             return 'bg-green-100 border-green-500 shadow-lg animate-pulse-glow-green';
+             return 'bg-green-500/10 border-green-500 shadow-lg animate-pulse-glow-green';
         }
         if (order) {
-            return 'bg-yellow-50 border-yellow-400';
+            return 'bg-yellow-500/10 border-yellow-400';
         }
-        return 'bg-white border-gray-200';
+        return 'bg-surface border-border';
     };
 
     const statusText = alert ? "Needs Attention" : order ? "Occupied" : "Available";
@@ -42,10 +41,10 @@ const TableRepresentation: React.FC<{
         <div className={`rounded-lg border-2 p-3 flex flex-col justify-between transition-all duration-300 ${getStatusStyles()}`}>
             <div>
                 <div className="flex justify-between items-center mb-1">
-                    <h3 className="font-bold text-lg text-brand-charcoal">Table {table.number}</h3>
-                    <span className="text-xs font-semibold text-gray-600">{statusText}</span>
+                    <h3 className="font-bold text-lg text-copy-rich">Table {table.number}</h3>
+                    <span className="text-xs font-semibold text-copy-light">{statusText}</span>
                 </div>
-                <div className="flex items-center text-sm text-gray-500 gap-3">
+                <div className="flex items-center text-sm text-copy-light gap-3">
                     <div className="flex items-center">
                         <ArmchairIcon className="w-4 h-4 mr-1" />
                         <span>{table.capacity} seats</span>
@@ -56,17 +55,17 @@ const TableRepresentation: React.FC<{
                     </div>
                 </div>
             </div>
-            <div className="mt-2 border-t pt-2 space-y-2">
+            <div className="mt-2 border-t pt-2 space-y-2 border-border">
                 {alert && (
-                    <div className="bg-red-200 p-2 rounded-md">
-                        <p className="text-sm font-bold text-red-800 text-center animate-pulse">{alert.request}</p>
+                    <div className="bg-red-500/20 p-2 rounded-md">
+                        <p className="text-sm font-bold text-red-500 text-center animate-pulse">{alert.request}</p>
                         <button onClick={() => onResolveAlert(alert.id)} className="w-full text-xs mt-2 bg-red-500 text-white font-semibold py-1 px-2 rounded-md hover:bg-red-600 transition">
                             Resolve
                         </button>
                     </div>
                 )}
                 {order && (
-                     <div className="text-xs space-y-1">
+                     <div className="text-xs space-y-1 text-copy-light">
                         <p><strong>Order:</strong> {order.id.slice(-6)}</p>
                         <p><strong>Status:</strong> <span className={`font-semibold ${statusColors[order.status].text}`}>{order.status}</span></p>
                         {order.status === 'On Route' && (
@@ -77,7 +76,7 @@ const TableRepresentation: React.FC<{
                      </div>
                 )}
                 {!order && !alert && (
-                    <p className="text-xs text-center text-gray-400 italic pt-2">Available</p>
+                    <p className="text-xs text-center text-copy-lighter italic pt-2">Available</p>
                 )}
             </div>
         </div>
@@ -132,7 +131,7 @@ const ServerView: React.FC<ServerViewProps> = ({ restaurant, liveOrders, serverA
                 `}
             </style>
             <div>
-                <h2 className="text-xl font-bold text-brand-charcoal mb-4 border-b pb-2">Main Dining</h2>
+                <h2 className="text-xl font-bold text-copy-rich mb-4 border-b pb-2 border-border">Main Dining</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     {mainDiningTables.map(table => (
                         <TableRepresentation 
@@ -148,7 +147,7 @@ const ServerView: React.FC<ServerViewProps> = ({ restaurant, liveOrders, serverA
             </div>
              {patioTables.length > 0 && (
                 <div>
-                    <h2 className="text-xl font-bold text-brand-charcoal mb-4 border-b pb-2">Patio</h2>
+                    <h2 className="text-xl font-bold text-copy-rich mb-4 border-b pb-2 border-border">Patio</h2>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                         {patioTables.map(table => (
                            <TableRepresentation 

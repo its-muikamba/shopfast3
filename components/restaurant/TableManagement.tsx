@@ -16,13 +16,13 @@ const ConfirmationModal: React.FC<{
     if (!isOpen) return null;
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="bg-surface rounded-lg shadow-xl w-full max-w-md border border-border">
                 <div className="p-6 text-center">
-                    <h3 className="text-xl font-bold text-brand-charcoal">{title}</h3>
-                    <div className="mt-2 text-sm text-gray-500">{children}</div>
+                    <h3 className="text-xl font-bold text-copy-rich">{title}</h3>
+                    <div className="mt-2 text-sm text-copy-light">{children}</div>
                 </div>
-                <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 rounded-b-lg">
-                    <button onClick={onClose} type="button" className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+                <div className="bg-background px-6 py-4 flex justify-end gap-3 rounded-b-lg">
+                    <button onClick={onClose} type="button" className="px-4 py-2 text-sm font-medium text-copy-rich bg-surface border border-border rounded-md hover:bg-border">Cancel</button>
                     <button onClick={onConfirm} type="button" className="px-4 py-2 text-sm font-medium text-white border border-transparent rounded-md bg-red-600 hover:bg-red-700">Delete</button>
                 </div>
             </div>
@@ -50,21 +50,21 @@ const CreateTableModal: React.FC<{
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-                <h2 className="text-2xl font-bold text-brand-charcoal mb-4">Create New Table</h2>
+            <form onSubmit={handleSubmit} className="bg-surface rounded-lg shadow-xl w-full max-w-md p-6 border border-border">
+                <h2 className="text-2xl font-bold text-copy-rich mb-4">Create New Table</h2>
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Table Number</label>
-                        <input type="number" value={tableNumber} onChange={e => setTableNumber(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300" required />
+                        <label className="block text-sm font-medium text-copy-light">Table Number</label>
+                        <input type="number" value={tableNumber} onChange={e => setTableNumber(e.target.value)} className="mt-1 block w-full rounded-md border-border bg-background text-copy" required />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Capacity (Seats)</label>
-                        <input type="number" value={capacity} onChange={e => setCapacity(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300" required />
+                        <label className="block text-sm font-medium text-copy-light">Capacity (Seats)</label>
+                        <input type="number" value={capacity} onChange={e => setCapacity(e.target.value)} className="mt-1 block w-full rounded-md border-border bg-background text-copy" required />
                     </div>
                 </div>
                 <div className="flex justify-end gap-4 mt-6">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">Cancel</button>
-                    <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-brand-charcoal rounded-md hover:bg-opacity-90">Create Table</button>
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-copy-rich bg-surface-light rounded-md hover:bg-border">Cancel</button>
+                    <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-copy-rich rounded-md hover:bg-opacity-90">Create Table</button>
                 </div>
             </form>
         </div>
@@ -143,29 +143,29 @@ const TableManagement: React.FC<TableManagementProps> = ({ restaurant, onUpdateR
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-brand-charcoal">Manage Your Tables</h3>
-                <button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-charcoal rounded-md hover:bg-opacity-90">
+                <h3 className="text-xl font-bold text-copy-rich">Manage Your Tables</h3>
+                <button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-copy-rich rounded-md hover:bg-opacity-90">
                     <PlusIcon className="w-5 h-5"/>
                     Create Table
                 </button>
             </div>
 
-            <div className="bg-white shadow-md rounded-lg overflow-hidden">
-                 <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+            <div className="bg-surface shadow-md rounded-lg overflow-hidden border border-border">
+                 <table className="min-w-full divide-y divide-border">
+                    <thead className="bg-surface-light">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Table Number</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Capacity</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Orders</th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-copy-light uppercase">Table Number</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-copy-light uppercase">Capacity</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-copy-light uppercase">Total Orders</th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-copy-light uppercase">Actions</th>
                         </tr>
                     </thead>
-                     <tbody className="bg-white divide-y divide-gray-200">
+                     <tbody className="bg-surface divide-y divide-border">
                         {restaurant.tables.sort((a,b) => a.number - b.number).map(table => (
                             <tr key={table.id}>
-                                <td className="px-6 py-4 font-medium">{table.number}</td>
-                                <td className="px-6 py-4 text-sm text-gray-600">{table.capacity} Seats</td>
-                                <td className="px-6 py-4 text-sm text-gray-600">{table.orderCount}</td>
+                                <td className="px-6 py-4 font-medium text-copy">{table.number}</td>
+                                <td className="px-6 py-4 text-sm text-copy-light">{table.capacity} Seats</td>
+                                <td className="px-6 py-4 text-sm text-copy-light">{table.orderCount}</td>
                                 <td className="px-6 py-4 text-center space-x-2">
                                      <button onClick={() => handleDownloadQR(table)} className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-brand-emerald rounded-md hover:bg-opacity-90">
                                         <QrCodeIcon className="w-4 h-4"/>
@@ -180,7 +180,7 @@ const TableManagement: React.FC<TableManagementProps> = ({ restaurant, onUpdateR
                         ))}
                          {restaurant.tables.length === 0 && (
                             <tr>
-                                <td colSpan={4} className="text-center py-10 text-gray-500">No tables created yet.</td>
+                                <td colSpan={4} className="text-center py-10 text-copy-light">No tables created yet.</td>
                             </tr>
                          )}
                     </tbody>

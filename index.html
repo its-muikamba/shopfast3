@@ -10,7 +10,47 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
+    :root.theme-light {
+      --color-background: #F9FAFB; /* gray-50 */
+      --color-surface: #FFFFFF;
+      --color-surface-raised: #FFFFFF;
+      --color-surface-light: #F3F4F6; /* gray-100 */
+      --color-border: #E5E7EB; /* gray-200 */
+      --color-copy: #374151; /* gray-700 */
+      --color-copy-rich: #111827; /* gray-900 */
+      --color-copy-light: #6B7280; /* gray-500 */
+      --color-copy-lighter: #9CA3AF; /* gray-400 */
+    }
+    :root.theme-dark {
+      --color-background: #111827; /* gray-900 */
+      --color-surface: #1F2937; /* gray-800 */
+      --color-surface-raised: #374151; /* gray-700 */
+      --color-surface-light: #374151; /* gray-700 */
+      --color-border: #374151; /* gray-700 */
+      --color-copy: #F8F9FA; /* gray-50 */
+      --color-copy-rich: #FFFFFF;
+      --color-copy-light: #9CA3AF; /* gray-400 */
+      --color-copy-lighter: #6B7280; /* gray-500 */
+    }
+
+    /* Diner mode has its own non-toggleable dark theme */
+    body.diner-mode {
+      --color-background: #111827;
+      --color-surface: #1F2937;
+      --color-surface-raised: #374151;
+      --color-surface-light: #374151;
+      --color-border: #374151;
+      --color-copy: #F8F9FA;
+      --color-copy-rich: #FFFFFF;
+      --color-copy-light: #9CA3AF;
+      --color-copy-lighter: #6B7280;
+    }
+    
     .glass-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+    }
+    .diner-mode .glass-card {
       background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
@@ -29,23 +69,24 @@
             sans: ['Sora', 'sans-serif'],
           },
           colors: {
-            'background': '#111827',
-            'surface': '#1F2937',
-            'surface-light': '#374151',
+            background: 'var(--color-background)',
+            surface: 'var(--color-surface)',
+            'surface-raised': 'var(--color-surface-raised)',
+            'surface-light': 'var(--color-surface-light)',
+            border: 'var(--color-border)',
+            copy: 'var(--color-copy)',
+            'copy-rich': 'var(--color-copy-rich)',
+            'copy-light': 'var(--color-copy-light)',
+            'copy-lighter': 'var(--color-copy-lighter)',
+            
             'primary': '#f2b154',      // Yellow from palette
             'secondary': '#65a951',    // Green from palette
             'brand-orange': '#f25527',   // Orange from palette
             'brand-red': '#cc0812',      // Red from palette
-            'copy': '#F8F9FA',
-            'copy-light': '#9CA3AF',
-            'copy-lighter': '#6B7280',
             'brand-charcoal': '#1A1A1A', // Used for text on light primary bg
             'brand-gold': '#C5A052',
             'brand-emerald': '#65a951', 
             'brand-sky': '#58A9E0',
-          },
-          backdropBlur: {
-            'xl': '24px',
           },
           boxShadow: {
             'glow-primary': '0 0 25px 5px rgba(242, 177, 84, 0.5)',

@@ -3,15 +3,15 @@ import { RestaurantReportData } from '../../types';
 import { CreditCardIcon, ShoppingCartIcon, UsersIcon, FileTextIcon, ShoppingCartOffIcon } from '../Icons';
 
 const MetricCard: React.FC<{ title: string; value: string | number; icon: React.ElementType }> = ({ title, value, icon: Icon }) => (
-    <div className="bg-white p-6 rounded-lg shadow">
+    <div className="bg-surface p-6 rounded-lg shadow border border-border">
         <div className="flex items-center">
             <div className="flex-shrink-0">
-                <Icon className="h-6 w-6 text-gray-400" />
+                <Icon className="h-6 w-6 text-copy-lighter" />
             </div>
             <div className="ml-5 w-0 flex-1">
                 <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">{title}</dt>
-                    <dd className="text-2xl font-bold text-gray-900">{value}</dd>
+                    <dt className="text-sm font-medium text-copy-light truncate">{title}</dt>
+                    <dd className="text-2xl font-bold text-copy-rich">{value}</dd>
                 </dl>
             </div>
         </div>
@@ -21,8 +21,8 @@ const MetricCard: React.FC<{ title: string; value: string | number; icon: React.
 const BarChart: React.FC<{ data: { hour: string; orders: number }[] }> = ({ data }) => {
     const maxOrders = Math.max(...data.map(d => d.orders), 0);
     return (
-        <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Peak & Off-Peak Hours</h3>
+        <div className="bg-surface p-6 rounded-lg shadow border border-border">
+            <h3 className="text-lg font-semibold text-copy-rich mb-4">Peak & Off-Peak Hours</h3>
             <div className="flex justify-between items-end h-64 space-x-2">
                 {data.map(({ hour, orders }) => (
                     <div key={hour} className="flex-1 flex flex-col items-center justify-end">
@@ -31,7 +31,7 @@ const BarChart: React.FC<{ data: { hour: string; orders: number }[] }> = ({ data
                             style={{ height: `${(orders / maxOrders) * 100}%` }}
                             title={`${orders} orders`}
                         ></div>
-                        <span className="text-xs text-gray-500 mt-2">{hour}</span>
+                        <span className="text-xs text-copy-light mt-2">{hour}</span>
                     </div>
                 ))}
             </div>
@@ -44,16 +44,16 @@ const PopularItemsChart: React.FC<{ items: { id: string; name: string; orderCoun
     const maxCount = Math.max(...topItems.map(item => item.orderCount), 1); // Avoid division by zero
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Most Popular Items</h3>
+        <div className="bg-surface p-6 rounded-lg shadow border border-border">
+            <h3 className="text-lg font-semibold text-copy-rich mb-4">Most Popular Items</h3>
             <div className="space-y-4">
                 {topItems.map((item) => (
                     <div key={item.id} className="w-full">
                         <div className="flex justify-between items-center mb-1 text-sm">
-                            <span className="font-medium text-gray-700">{item.name}</span>
-                            <span className="font-bold text-gray-900">{item.orderCount}</span>
+                            <span className="font-medium text-copy">{item.name}</span>
+                            <span className="font-bold text-copy-rich">{item.orderCount}</span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-4">
+                        <div className="w-full bg-surface-light rounded-full h-4">
                             <div
                                 className="bg-brand-emerald h-4 rounded-full transition-all duration-500 ease-out"
                                 style={{ width: `${(item.orderCount / maxCount) * 100}%` }}
@@ -118,9 +118,9 @@ const RestaurantReports: React.FC<RestaurantReportsProps> = ({ data }) => {
                 </div>
             </div>
 
-             <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Advanced Analytics</h3>
-                <p className="text-sm text-gray-600">
+             <div className="bg-surface p-6 rounded-lg shadow border border-border">
+                <h3 className="text-lg font-semibold text-copy-rich mb-2">Advanced Analytics</h3>
+                <p className="text-sm text-copy-light">
                     High-level cart abandonment data is now available. Detailed item-by-item abandonment analysis, customer return rates, and more will be available with a live backend connection.
                 </p>
             </div>

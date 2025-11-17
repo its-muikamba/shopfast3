@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Restaurant, StaffRole, RestaurantView, StaffMember, MenuItem, Order, ServerAlert, OrderStatus, RestaurantReportData } from '../../types';
 import { 
     LayoutDashboardIcon, ClipboardListIcon, UtensilsCrossedIcon, CreditCardIcon, 
-    FileTextIcon, UsersIcon, SettingsIcon, LogOutIcon, ArmchairIcon, TruckIcon
+    FileTextIcon, UsersIcon, SettingsIcon, LogOutIcon, ArmchairIcon, TruckIcon,
+    SunIcon, MoonIcon
 } from '../Icons';
 import RestaurantAdminOverview from './RestaurantAdminOverview';
 import ServerView from './ServerView';
@@ -14,6 +15,7 @@ import TableManagement from './TableManagement';
 import RestaurantReports from './RestaurantReports';
 import DeliveryManagementView from './DeliveryManagementView';
 
+type Theme = 'light' | 'dark';
 
 interface NavItemProps {
     icon: React.ElementType;
@@ -23,7 +25,7 @@ interface NavItemProps {
 }
 
 const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, isActive, onClick }) => (
-    <button onClick={onClick} className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActive ? 'bg-primary text-brand-charcoal' : 'text-copy-light hover:bg-primary/10 hover:text-copy'}`}>
+    <button onClick={onClick} className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActive ? 'bg-primary text-brand-charcoal' : 'text-copy-light hover:bg-surface-light hover:text-copy'}`}>
         <Icon className="w-5 h-5 mr-3" />
         <span>{label}</span>
     </button>
@@ -80,6 +82,19 @@ const RestaurantDashboard: React.FC<RestaurantDashboardProps> = ({
     reportData,
     onLogout 
 }) => {
+    
+    const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('restaurant-theme') as Theme) || 'light');
+
+    useEffect(() => {
+        const root = window.document.documentElement;
+        root.classList.remove('theme-light', 'theme-dark', 'diner-mode');
+        root.classList.add(`theme-${theme}`);
+        localStorage.setItem('restaurant-theme', theme);
+    }, [theme]);
+
+    const toggleTheme = () => {
+        setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+    };
     
     const getInitialView = (role: StaffRole) => {
         switch(role) {
@@ -170,12 +185,12 @@ const RestaurantDashboard: React.FC<RestaurantDashboardProps> = ({
     
     return (
         <div className="flex h-screen bg-background font-sans text-copy">
-            <aside className="w-64 bg-surface flex flex-col border-r border-gray-200">
-                <div className="flex items-center justify-center h-20 border-b border-gray-200">
+            <aside className="w-64 bg-surface flex flex-col border-r border-border">
+                <div className="flex items-center justify-center h-20 border-b border-border">
                    <div className="flex items-center gap-3 text-center">
                     <img src={restaurant.logoUrl} alt={restaurant.name} className="w-10 h-10 rounded-full" />
                     <div>
-                        <h1 className="font-bold text-md leading-tight text-copy">{restaurant.name}</h1>
+                        <h1 className="font-bold text-md leading-tight text-copy-rich">{restaurant.name}</h1>
                         <p className="text-xs text-copy-light">{role}</p>
                     </div>
                   </div>
@@ -191,7 +206,7 @@ const RestaurantDashboard: React.FC<RestaurantDashboardProps> = ({
                         />
                     ))}
                 </nav>
-                <div className="p-4 border-t border-gray-200">
+                <div className="p-4 border-t border-border">
                     <button onClick={onLogout} className="flex items-center w-full px-4 py-3 text-sm font-medium text-copy-light rounded-lg hover:bg-red-500/10 hover:text-red-600 transition-colors">
                         <LogOutIcon className="w-5 h-5 mr-3" />
                         <span>Logout</span>
@@ -199,10 +214,13 @@ const RestaurantDashboard: React.FC<RestaurantDashboardProps> = ({
                 </div>
             </aside>
             <main className="flex-1 flex flex-col overflow-hidden">
-                <header className="h-20 bg-surface border-b border-gray-200 flex items-center px-8 justify-between">
-                    <h2 className="text-2xl font-bold text-copy">
+                <header className="h-20 bg-surface border-b border-border flex items-center px-8 justify-between">
+                    <h2 className="text-2xl font-bold text-copy-rich">
                         {availableNavItems.find(i => i.view === currentView)?.label}
                     </h2>
+                    <button onClick={toggleTheme} className="p-2 rounded-full text-copy-light hover:bg-surface-light">
+                        {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}
+                    </button>
                 </header>
                 <div className="flex-1 overflow-y-auto p-8">
                     {renderView()}
