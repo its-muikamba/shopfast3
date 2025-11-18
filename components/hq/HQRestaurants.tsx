@@ -39,8 +39,7 @@ const CreateRestaurantModal: React.FC<{
     isOpen: boolean; 
     onClose: () => void; 
     onSave: (payload: { 
-        // FIX: Add 'deliveryConfig' to Omit to align with the implementation in App.tsx and resolve the type error.
-        restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme' | 'categories' | 'tables' | 'serviceRequests' | 'paymentSettings' | 'nextBillingDate' | 'deliveryConfig'>;
+        restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme' | 'currency' | 'categories' | 'tables' | 'serviceRequests' | 'paymentSettings' | 'nextBillingDate' | 'deliveryConfig' | 'reviews'>;
         adminData: Omit<StaffMember, 'id' | 'restaurantId' | 'role' | 'status'>;
     }) => void;
 }> = ({ isOpen, onClose, onSave }) => {

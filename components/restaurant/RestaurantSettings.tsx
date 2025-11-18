@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Restaurant } from '../../types';
-import { StripeIcon, MpesaIcon, CreditCardIcon } from '../Icons';
+import { Restaurant, DailySpecial } from '../../types';
+import { StripeIcon, MpesaIcon, CreditCardIcon, PlusIcon, EditIcon, Trash2Icon } from '../Icons';
+import { CURRENCIES } from '../../constants';
 
 const ToggleSwitch: React.FC<{ checked: boolean; onChange: () => void }> = ({ checked, onChange }) => {
   return (
@@ -23,6 +24,82 @@ const ToggleSwitch: React.FC<{ checked: boolean; onChange: () => void }> = ({ ch
   );
 };
 
+const SpecialModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (special: DailySpecial) => void;
+    special: DailySpecial | null;
+}> = ({ isOpen, onClose, onSave, special }) => {
+    const [formData, setFormData] = useState<Omit<DailySpecial, 'id'>>({
+        title: '', description: '', active: true, mediaUrl: '', mediaType: 'image'
+    });
+
+    useEffect(() => {
+        if (special) {
+            setFormData(special);
+        } else {
+            setFormData({ title: '', description: '', active: true, mediaUrl: '', mediaType: 'image' });
+        }
+    }, [special, isOpen]);
+
+    if (!isOpen) return null;
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSave({
+            ...formData,
+            id: special?.id || `sp-${Date.now()}`,
+        });
+        onClose();
+    };
+
+    const inputStyles = "mt-1 block w-full rounded-md border-border bg-background shadow-sm focus:border-brand-gold focus:ring-brand-gold sm:text-sm text-copy";
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-surface rounded-lg shadow-xl w-full max-w-2xl border border-border">
+                <form onSubmit={handleSubmit}>
+                    <div className="p-6">
+                        <h2 className="text-2xl font-bold text-copy-rich mb-4">{special ? 'Edit' : 'Add'} Special/Announcement</h2>
+                        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-copy-light">Title</label>
+                                    <input type="text" name="title" value={formData.title} onChange={handleChange} className={inputStyles} required />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-copy-light">Description</label>
+                                    <textarea name="description" value={formData.description} onChange={handleChange} rows={3} className={inputStyles} required />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-copy-light">Media URL (Image or Video)</label>
+                                    <input type="url" name="mediaUrl" value={formData.mediaUrl} onChange={handleChange} className={inputStyles} placeholder="https://example.com/image.png" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-copy-light">Media Type</label>
+                                    <select name="mediaType" value={formData.mediaType} onChange={handleChange} className={inputStyles}>
+                                        <option value="image">Image</option>
+                                        <option value="video">Video</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-background px-6 py-4 flex justify-end gap-4 rounded-b-lg">
+                        <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-copy-rich bg-surface-light rounded-md hover:bg-border">Cancel</button>
+                        <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-copy-rich rounded-md hover:bg-opacity-90">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
 interface RestaurantSettingsProps {
     restaurant: Restaurant;
     onUpdateRestaurant: (restaurant: Restaurant) => void;
@@ -31,13 +108,23 @@ interface RestaurantSettingsProps {
 const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaurant, onUpdateRestaurant }) => {
     const [formData, setFormData] = useState(restaurant);
     const [isSaved, setIsSaved] = useState(false);
+    const [isSpecialModalOpen, setIsSpecialModalOpen] = useState(false);
+    const [editingSpecial, setEditingSpecial] = useState<DailySpecial | null>(null);
 
     useEffect(() => {
         setFormData(restaurant);
     }, [restaurant]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
+
+        if (name === 'currencyCode') {
+            const selectedCurrency = CURRENCIES.find(c => c.code === value);
+            if (selectedCurrency) {
+                setFormData(prev => ({ ...prev, currency: selectedCurrency }));
+            }
+            return;
+        }
         
         const keys = name.split('.');
         if (keys.length > 1) {
@@ -45,7 +132,6 @@ const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaurant, onU
                 const newState = { ...prev };
                 let current: any = newState;
                 for (let i = 0; i < keys.length - 1; i++) {
-                    // Create nested object if it doesn't exist
                     if (current[keys[i]] === undefined) {
                         current[keys[i]] = {};
                     }
@@ -78,6 +164,29 @@ const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaurant, onU
         });
     };
 
+    const handleSpecialSave = (special: DailySpecial) => {
+        const specials = formData.theme.specials || [];
+        const existingIndex = specials.findIndex(s => s.id === special.id);
+        let updatedSpecials;
+        if (existingIndex > -1) {
+            updatedSpecials = [...specials];
+            updatedSpecials[existingIndex] = special;
+        } else {
+            updatedSpecials = [...specials, special];
+        }
+        setFormData(prev => ({ ...prev, theme: { ...prev.theme, specials: updatedSpecials } }));
+    };
+
+    const handleSpecialDelete = (specialId: string) => {
+        const updatedSpecials = formData.theme.specials.filter(s => s.id !== specialId);
+        setFormData(prev => ({ ...prev, theme: { ...prev.theme, specials: updatedSpecials } }));
+    };
+    
+    const handleSpecialToggle = (specialId: string) => {
+        const updatedSpecials = formData.theme.specials.map(s => s.id === specialId ? { ...s, active: !s.active } : s);
+        setFormData(prev => ({ ...prev, theme: { ...prev.theme, specials: updatedSpecials } }));
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onUpdateRestaurant(formData);
@@ -86,6 +195,10 @@ const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaurant, onU
     };
     
     const canOfferDelivery = restaurant.subscription !== 'basic';
+    const specialsLimit = restaurant.subscription === 'basic' ? 2 : 7;
+    const specialsCount = formData.theme.specials?.length || 0;
+    const canAddMoreSpecials = specialsCount < specialsLimit;
+
     const inputStyles = "mt-1 block w-full rounded-md border-border bg-background shadow-sm focus:border-brand-gold focus:ring-brand-gold sm:text-sm text-copy";
 
     return (
@@ -110,6 +223,14 @@ const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaurant, onU
                             <label className="block text-sm font-medium text-copy-light">Banner Image URL</label>
                             <input type="url" name="imageUrl" value={formData.imageUrl} onChange={handleChange} className={inputStyles} placeholder="https://example.com/banner.png" required />
                         </div>
+                        <div className="md:col-span-2">
+                             <label className="block text-sm font-medium text-copy-light">Currency</label>
+                            <select name="currencyCode" value={formData.currency.code} onChange={handleChange} className={inputStyles}>
+                                {CURRENCIES.map(c => (
+                                    <option key={c.code} value={c.code}>{c.code} - {c.symbol} {c.code === 'KES' ? '(Default)' : ''}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -129,25 +250,39 @@ const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaurant, onU
                         </div>
                      </div>
                      <div className="mt-8 pt-6 border-t border-border">
-                        <div className="flex justify-between items-center">
+                        <div className="flex justify-between items-start">
                             <div>
-                                <h3 className="text-lg font-bold text-copy-rich">Daily Special / Announcement</h3>
-                                <p className="text-sm text-copy-light">Feature a special item or message on the diner's menu.</p>
+                                <h3 className="text-lg font-bold text-copy-rich">Specials & Announcements</h3>
+                                <p className="text-sm text-copy-light">Feature special items or messages in a carousel on the diner's menu.</p>
+                                <p className="text-xs text-copy-lighter mt-1">
+                                    {specialsCount} of {specialsLimit} slots used.
+                                </p>
                             </div>
-                            <ToggleSwitch checked={formData.theme.dailySpecial?.active ?? false} onChange={() => handleToggle('theme.dailySpecial.active')} />
+                            <button
+                                type="button"
+                                disabled={!canAddMoreSpecials}
+                                onClick={() => { setEditingSpecial(null); setIsSpecialModalOpen(true); }}
+                                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-copy-rich rounded-md hover:bg-opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            >
+                                <PlusIcon className="w-4 h-4" /> Add New
+                            </button>
                         </div>
-                        {formData.theme.dailySpecial?.active && (
-                            <div className="grid grid-cols-1 gap-6 mt-4 p-4 bg-background rounded-lg border border-border">
-                                <div>
-                                    <label className="block text-sm font-medium text-copy-light">Title</label>
-                                    <input type="text" name="theme.dailySpecial.title" value={formData.theme.dailySpecial?.title || ''} onChange={handleChange} className={inputStyles} placeholder="e.g. Chef's Special" />
+                        <div className="space-y-3 mt-4">
+                            {formData.theme.specials?.map(special => (
+                                <div key={special.id} className="p-3 bg-background rounded-lg border border-border flex items-center justify-between">
+                                    <div className="flex-1">
+                                        <p className="font-semibold text-copy">{special.title}</p>
+                                        <p className="text-xs text-copy-light truncate">{special.description}</p>
+                                    </div>
+                                    <div className="flex items-center gap-3 ml-4">
+                                        <ToggleSwitch checked={special.active} onChange={() => handleSpecialToggle(special.id)} />
+                                        <button type="button" onClick={() => { setEditingSpecial(special); setIsSpecialModalOpen(true); }} className="text-copy-lighter hover:text-brand-gold"><EditIcon className="w-4 h-4"/></button>
+                                        <button type="button" onClick={() => handleSpecialDelete(special.id)} className="text-copy-lighter hover:text-red-500"><Trash2Icon className="w-4 h-4"/></button>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-copy-light">Description</label>
-                                    <textarea name="theme.dailySpecial.description" value={formData.theme.dailySpecial?.description || ''} onChange={handleChange} rows={3} className={inputStyles} placeholder="Describe the daily special." />
-                                </div>
-                            </div>
-                        )}
+                            ))}
+                            {specialsCount === 0 && <p className="text-center text-sm text-copy-light py-4">No specials added yet.</p>}
+                        </div>
                      </div>
                 </div>
 
@@ -164,7 +299,7 @@ const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaurant, onU
                          {formData.deliveryConfig?.enabledByAdmin && (
                              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4 pt-6 border-t border-border">
                                 <div>
-                                    <label className="block text-sm font-medium text-copy-light">Delivery Fee ($)</label>
+                                    <label className="block text-sm font-medium text-copy-light">Delivery Fee ({formData.currency.symbol})</label>
                                     <input type="number" step="0.01" name="deliveryConfig.deliveryFee" value={formData.deliveryConfig?.deliveryFee || 0} onChange={handleChange} className={inputStyles} />
                                 </div>
                                  <div>
@@ -271,6 +406,13 @@ const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaurant, onU
                     </button>
                 </div>
             </form>
+
+            <SpecialModal
+                isOpen={isSpecialModalOpen}
+                onClose={() => setIsSpecialModalOpen(false)}
+                onSave={handleSpecialSave}
+                special={editingSpecial}
+            />
         </div>
     );
 };

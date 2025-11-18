@@ -1,4 +1,11 @@
-import { Restaurant, MenuItem, HQMetrics, AuditLog, StaffMember, StaffRole, LiveOrder, RestaurantReportData, BillingHistory, SupportTicket } from './types';
+import { Restaurant, MenuItem, HQMetrics, AuditLog, StaffMember, StaffRole, LiveOrder, RestaurantReportData, BillingHistory, SupportTicket, Currency, Review } from './types';
+
+export const CURRENCIES: Currency[] = [
+  { code: 'KES', symbol: 'Ksh' },
+  { code: 'USD', symbol: '$' },
+  { code: 'EUR', symbol: '€' },
+  { code: 'GBP', symbol: '£' },
+];
 
 export const defaultPaymentSettings = {
     stripe: { enabled: false, publicKey: '', secretKey: '' },
@@ -20,12 +27,29 @@ const defaultServiceRequests = [
     { id: 'sr3', label: 'General Assistance', icon: 'BellIcon' as 'BellIcon' },
 ];
 
+const MOCK_REVIEWS_R1: Review[] = [
+    { id: 'rev1', userId: 'u1', userName: 'Gilbert', rating: 5, comment: 'Absolutely fantastic! The Carbonara was the best I have ever had. Great atmosphere and friendly staff.', timestamp: Date.now() - 2 * 24 * 60 * 60 * 1000 },
+    { id: 'rev2', userId: 'u2', userName: 'Diana', rating: 4, comment: 'Lovely place for a date night. The Tiramisu was divine. Service was a little slow, but it was a busy Saturday.', timestamp: Date.now() - 5 * 24 * 60 * 60 * 1000 },
+    { id: 'rev3', userId: 'u3', userName: 'Charles', rating: 5, comment: 'A true gem. The pizza was authentic and delicious. Will definitely be back!', timestamp: Date.now() - 10 * 24 * 60 * 60 * 1000 },
+];
+
+const MOCK_REVIEWS_R2: Review[] = [
+     { id: 'rev4', userId: 'u1', userName: 'Gilbert', rating: 4, comment: 'Great Pad Thai, very flavorful. The ambiance is nice and modern.', timestamp: Date.now() - 3 * 24 * 60 * 60 * 1000 },
+     { id: 'rev5', userId: 'u2', userName: 'Diana', rating: 5, comment: 'The sushi is so fresh! The Dragon Roll was a highlight. Highly recommend this place.', timestamp: Date.now() - 8 * 24 * 60 * 60 * 1000 },
+];
+
+const calculateAverageRating = (reviews: Review[]): number => {
+    if (reviews.length === 0) return 0;
+    const total = reviews.reduce((sum, review) => sum + review.rating, 0);
+    return parseFloat((total / reviews.length).toFixed(1));
+};
+
 export const RESTAURANTS: Restaurant[] = [
   {
     id: 'r1',
     name: 'The Golden Spoon',
     cuisine: 'Italian',
-    rating: 4.8,
+    rating: calculateAverageRating(MOCK_REVIEWS_R1),
     distance: '0.5 miles',
     imageUrl: 'https://picsum.photos/seed/restaurant1/800/600',
     logoUrl: 'https://picsum.photos/seed/logo1/200/200',
@@ -33,9 +57,11 @@ export const RESTAURANTS: Restaurant[] = [
     createdAt: '2023-10-26',
     subscription: 'premium',
     nextBillingDate: '2024-07-26',
+    currency: { code: 'KES', symbol: 'Ksh' },
     categories: ['Starters', 'Mains', 'Desserts', 'Drinks'],
     tables: defaultTables,
     serviceRequests: defaultServiceRequests,
+    reviews: MOCK_REVIEWS_R1,
     paymentSettings: {
         stripe: { enabled: true, publicKey: 'pk_test_demo', secretKey: 'sk_test_demo' },
         mpesa: { enabled: true, shortCode: '123456', consumerKey: 'mpesa_key', consumerSecret: 'mpesa_secret' },
@@ -50,18 +76,31 @@ export const RESTAURANTS: Restaurant[] = [
     theme: {
       welcomeMessage: 'Experience the taste of authentic Italian cuisine!',
       primaryColor: '#f2b154',
-      dailySpecial: {
-        title: "Chef's Special: Truffle Risotto",
-        description: "A creamy risotto infused with black truffle oil and topped with fresh parmesan.",
-        active: true
-      }
+      specials: [
+        {
+          id: 'r1s1',
+          title: "Chef's Special: Truffle Risotto",
+          description: "A creamy risotto infused with black truffle oil and topped with fresh parmesan.",
+          active: true,
+          mediaUrl: 'https://images.unsplash.com/photo-1548943487-a2e4e64b4859?q=80&w=1974&auto=format&fit=crop',
+          mediaType: 'image',
+        },
+        {
+          id: 'r1s2',
+          title: "Live Music Saturdays",
+          description: "Enjoy live jazz music every Saturday from 7 PM to 10 PM.",
+          active: true,
+          mediaUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=2070&auto=format&fit=crop',
+          mediaType: 'image',
+        },
+      ],
     }
   },
   {
     id: 'r2',
     name: 'Emerald Garden',
     cuisine: 'Asian Fusion',
-    rating: 4.6,
+    rating: calculateAverageRating(MOCK_REVIEWS_R2),
     distance: '1.2 miles',
     imageUrl: 'https://picsum.photos/seed/restaurant2/800/600',
     logoUrl: 'https://picsum.photos/seed/logo2/200/200',
@@ -69,9 +108,11 @@ export const RESTAURANTS: Restaurant[] = [
     createdAt: '2023-09-15',
     subscription: 'premium',
     nextBillingDate: '2024-07-15',
+    currency: { code: 'KES', symbol: 'Ksh' },
     categories: ['Appetizers', 'Main Courses', 'Sushi', 'Beverages'],
     tables: defaultTables,
     serviceRequests: defaultServiceRequests,
+    reviews: MOCK_REVIEWS_R2,
     paymentSettings: {
         stripe: { enabled: true, publicKey: 'pk_test_demo2', secretKey: 'sk_test_demo2' },
         mpesa: { enabled: false, shortCode: '', consumerKey: '', consumerSecret: '' },
@@ -86,11 +127,16 @@ export const RESTAURANTS: Restaurant[] = [
     theme: {
       welcomeMessage: 'A culinary journey through Asia.',
       primaryColor: '#f2b154',
-      dailySpecial: {
-        title: "Today's Special: Dragon Roll",
-        description: "Eel and cucumber topped with avocado, tobiko, and eel sauce.",
-        active: true
-      }
+      specials: [
+        {
+          id: 'r2s1',
+          title: "Today's Special: Dragon Roll",
+          description: "Eel and cucumber topped with avocado, tobiko, and eel sauce.",
+          active: true,
+          mediaUrl: 'https://images.unsplash.com/photo-1617196034183-421b4917c92d?q=80&w=2070&auto=format&fit=crop',
+          mediaType: 'image',
+        }
+      ],
     }
   },
   {
@@ -105,9 +151,11 @@ export const RESTAURANTS: Restaurant[] = [
     createdAt: '2023-11-01',
     subscription: 'basic', // Basic tier does not get delivery
     nextBillingDate: '2024-08-01',
+    currency: { code: 'USD', symbol: '$' },
     categories: ['Starters', 'Burgers & Sandwiches', 'Desserts', 'Drinks'],
     tables: defaultTables,
     serviceRequests: defaultServiceRequests,
+    reviews: [],
     paymentSettings: defaultPaymentSettings,
     deliveryConfig: {
         enabledByAdmin: false,
@@ -118,11 +166,14 @@ export const RESTAURANTS: Restaurant[] = [
     theme: {
       welcomeMessage: 'Hearty meals, just like home.',
       primaryColor: '#f2b154',
-      dailySpecial: {
-        title: "Weekend Deal: BBQ Ribs",
-        description: "Full rack of slow-cooked pork ribs with our signature BBQ sauce.",
-        active: false
-      }
+      specials: [
+         {
+          id: 'r3s1',
+          title: "Weekend Deal: BBQ Ribs",
+          description: "Full rack of slow-cooked pork ribs with our signature BBQ sauce.",
+          active: false
+        }
+      ],
     }
   },
    {
@@ -137,9 +188,11 @@ export const RESTAURANTS: Restaurant[] = [
     createdAt: '2023-08-05',
     subscription: 'enterprise',
     nextBillingDate: '2024-07-05',
+    currency: { code: 'KES', symbol: 'Ksh' },
     categories: ['Oysters & Raw Bar', 'Main Catch', 'Sides', 'Wine List'],
     tables: defaultTables,
     serviceRequests: defaultServiceRequests,
+    reviews: [],
     paymentSettings: defaultPaymentSettings,
     deliveryConfig: {
         enabledByAdmin: true,
@@ -150,11 +203,24 @@ export const RESTAURANTS: Restaurant[] = [
     theme: {
       welcomeMessage: 'The freshest catch in town, served daily.',
       primaryColor: '#f2b154',
-      dailySpecial: {
-        title: "Catch of the Day: Grilled Swordfish",
-        description: "Served with a lemon-caper sauce and roasted vegetables.",
-        active: true
-      }
+      specials: [
+        {
+          id: 'r4s1',
+          title: "Catch of the Day: Grilled Swordfish",
+          description: "Served with a lemon-caper sauce and roasted vegetables.",
+          active: true,
+          mediaUrl: 'https://images.unsplash.com/photo-1622234033983-e1a53a0b5b13?q=80&w=1932&auto=format&fit=crop',
+          mediaType: 'image'
+        },
+         {
+          id: 'r4s2',
+          title: "Behind the Scenes",
+          description: "Watch our chefs masterfully prepare your meals.",
+          active: true,
+          mediaUrl: 'https://assets.mixkit.co/videos/preview/mixkit-kitchen-of-a-restaurant-4447-large.mp4',
+          mediaType: 'video'
+        }
+      ]
     }
   },
 ];
@@ -212,8 +278,8 @@ export const STAFF_MEMBERS: StaffMember[] = [
 ];
 
 export const INITIAL_ACTIVE_ORDERS: LiveOrder[] = [
-    { id: 'ORD-101', restaurantId: 'r1', tableNumber: 5, items: [{...MENUS.r1[0], quantity: 1}, {...MENUS.r1[2], quantity: 1}], total: 26.50, status: 'Pending', orderType: 'dine-in', orderName: 'Gilbert', userId: 'u1' },
-    { id: 'ORD-102', restaurantId: 'r2', tableNumber: 12, items: [{...MENUS.r2[1], quantity: 2}], total: 33.00, status: 'Pending', orderType: 'dine-in', orderName: 'Xavier', userId: 'u1' },
+    { id: 'ORD-101', restaurantId: 'r1', tableNumber: 5, items: [{...MENUS.r1[0], quantity: 1}, {...MENUS.r1[2], quantity: 1}], total: 26.50, status: 'Served', orderType: 'dine-in', orderName: 'Gilbert', userId: 'u1', isReviewed: false, paymentStatus: 'paid' },
+    { id: 'ORD-102', restaurantId: 'r2', tableNumber: 12, items: [{...MENUS.r2[1], quantity: 2}], total: 33.00, status: 'Served', orderType: 'dine-in', orderName: 'Gilbert', userId: 'u1', isReviewed: true, paymentStatus: 'paid' },
     { id: 'ORD-103', restaurantId: 'r1', tableNumber: 8, items: [{...MENUS.r1[3], quantity: 1}, {...MENUS.r1[6], quantity: 2}], total: 29.00, status: 'Preparing', orderType: 'dine-in', orderName: 'Diana', acceptedAt: Date.now() - (1000 * 60 * 3), preparationTime: 15 },
     { id: 'ORD-104', restaurantId: 'r1', tableNumber: 3, items: [{...MENUS.r1[4], quantity: 1}], total: 9.00, status: 'On Route', orderType: 'dine-in', orderName: 'Charles', acceptedAt: Date.now() - (1000 * 60 * 10), preparationTime: 10, userId: 'u1' },
 ];

@@ -82,6 +82,30 @@ export interface DeliveryConfig {
     estimatedTime: number; // in minutes
 }
 
+export interface DailySpecial {
+  id: string;
+  title: string;
+  description: string;
+  mediaUrl?: string;
+  mediaType?: 'image' | 'video';
+  active: boolean;
+}
+
+export interface Currency {
+  code: string; // e.g., 'USD', 'KES', 'EUR'
+  symbol: string; // e.g., '$', 'Ksh', '€'
+}
+
+export interface Review {
+  id: string;
+  userId: string;
+  userName: string;
+  rating: number; // 1-5
+  comment: string;
+  timestamp: number;
+}
+
+
 export interface Restaurant {
   id: string;
   name: string;
@@ -96,17 +120,15 @@ export interface Restaurant {
   nextBillingDate: string;
   paymentSettings: PaymentSettings;
   deliveryConfig: DeliveryConfig;
+  currency: Currency;
   categories: string[];
   tables: Table[];
   serviceRequests: ServiceRequest[];
+  reviews: Review[];
   theme: {
     welcomeMessage: string;
     primaryColor: string;
-    dailySpecial?: {
-      title: string;
-      description: string;
-      active: boolean;
-    };
+    specials: DailySpecial[];
   };
 }
 
@@ -167,6 +189,7 @@ export interface LiveOrder extends OrderContext {
     userId?: string;
     paymentMethod?: PaymentMethod;
     paymentStatus?: PaymentStatus;
+    isReviewed?: boolean;
 }
 
 export interface Transaction {

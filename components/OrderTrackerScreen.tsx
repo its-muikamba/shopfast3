@@ -153,14 +153,14 @@ const OrderTrackerScreen: React.FC<OrderTrackerScreenProps> = ({ order, setOrder
                     {order.items.map(item => (
                         <div key={item.id} className="flex justify-between items-center">
                             <span className="text-copy-light">{item.name} <span className="text-copy-lighter">x{item.quantity}</span></span>
-                            <span className="font-medium text-copy">${(item.price * item.quantity).toFixed(2)}</span>
+                            <span className="font-medium text-copy">{order.restaurant.currency.symbol}{(item.price * item.quantity).toFixed(2)}</span>
                         </div>
                     ))}
                 </div>
                 <div className="border-t border-primary/20 my-3"></div>
                 <div className="flex justify-between font-bold text-lg text-copy text-right">
                     <span>Total</span>
-                    <span>${order.total.toFixed(2)}</span>
+                    <span>{order.restaurant.currency.symbol}{order.total.toFixed(2)}</span>
                 </div>
             </div>
 

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { GeneralAiRecommendation, Restaurant } from '../types';
 import { getGeneralRecommendations } from '../services/geminiService';
@@ -32,7 +33,7 @@ const RestaurantCarouselCard: React.FC<{ restaurant: Restaurant; onSelect: () =>
       <p className="text-sm opacity-90">{restaurant.cuisine}</p>
       <div className="flex items-center gap-1 mt-1 text-sm">
         <StarIcon className="w-4 h-4 text-primary fill-current" />
-        <span>{restaurant.rating}</span>
+        <span>{restaurant.rating} ({restaurant.reviews.length})</span>
       </div>
     </div>
   </div>

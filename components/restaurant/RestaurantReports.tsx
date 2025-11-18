@@ -1,5 +1,5 @@
 import React from 'react';
-import { RestaurantReportData } from '../../types';
+import { Restaurant, RestaurantReportData } from '../../types';
 import { CreditCardIcon, ShoppingCartIcon, UsersIcon, FileTextIcon, ShoppingCartOffIcon } from '../Icons';
 
 const MetricCard: React.FC<{ title: string; value: string | number; icon: React.ElementType }> = ({ title, value, icon: Icon }) => (
@@ -69,17 +69,19 @@ const PopularItemsChart: React.FC<{ items: { id: string; name: string; orderCoun
 
 interface RestaurantReportsProps {
     data: RestaurantReportData;
+    restaurant: Restaurant;
 }
 
-const RestaurantReports: React.FC<RestaurantReportsProps> = ({ data }) => {
+const RestaurantReports: React.FC<RestaurantReportsProps> = ({ data, restaurant }) => {
     const { metrics, hourlyActivity, popularItems } = data;
+    const { currency } = restaurant;
 
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <MetricCard 
                     title="Total Revenue" 
-                    value={`$${metrics.totalRevenue.toFixed(2)}`}
+                    value={`${currency.symbol}${metrics.totalRevenue.toFixed(2)}`}
                     icon={CreditCardIcon}
                 />
                 <MetricCard 
@@ -89,7 +91,7 @@ const RestaurantReports: React.FC<RestaurantReportsProps> = ({ data }) => {
                 />
                  <MetricCard 
                     title="Avg. Order Value" 
-                    value={`$${metrics.averageOrderValue.toFixed(2)}`}
+                    value={`${currency.symbol}${metrics.averageOrderValue.toFixed(2)}`}
                     icon={FileTextIcon}
                 />
                 <MetricCard 
@@ -104,7 +106,7 @@ const RestaurantReports: React.FC<RestaurantReportsProps> = ({ data }) => {
                 />
                 <MetricCard 
                     title="Abandoned Cart Value" 
-                    value={`$${metrics.abandonedCartValue.toFixed(2)}`}
+                    value={`${currency.symbol}${metrics.abandonedCartValue.toFixed(2)}`}
                     icon={ShoppingCartOffIcon}
                 />
             </div>

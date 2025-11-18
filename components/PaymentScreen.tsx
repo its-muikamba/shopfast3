@@ -84,7 +84,7 @@ const ReceiptView: React.FC<{ order: Order; onFinish: () => void }> = ({ order, 
                     {order.items.map(item => (
                         <div key={item.id} className="flex justify-between text-sm">
                             <span className="text-gray-600">{item.name} x{item.quantity}</span>
-                            <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
+                            <span className="font-medium">{order.restaurant.currency.symbol}{(item.price * item.quantity).toFixed(2)}</span>
                         </div>
                     ))}
                 </div>
@@ -92,7 +92,7 @@ const ReceiptView: React.FC<{ order: Order; onFinish: () => void }> = ({ order, 
                 <div className="text-left space-y-1 my-4">
                      <div className="flex justify-between font-bold text-xl">
                         <span>Total Paid</span>
-                        <span>${order.total.toFixed(2)}</span>
+                        <span>{order.restaurant.currency.symbol}{order.total.toFixed(2)}</span>
                     </div>
                      <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Payment Method</span>
@@ -130,7 +130,7 @@ const PaymentScreen: React.FC<{ order: Order; onPaymentSuccess: (method: Payment
         }, 2000); // Simulate payment processing
     };
     
-    const { theme, paymentSettings } = order.restaurant;
+    const { theme, paymentSettings, currency } = order.restaurant;
     
     if (order.paymentStatus === 'paid') {
         return <ReceiptView order={order} onFinish={onFinish} />
@@ -151,14 +151,14 @@ const PaymentScreen: React.FC<{ order: Order; onPaymentSuccess: (method: Payment
                     {order.items.map(item => (
                         <div key={item.id} className="flex justify-between text-sm">
                             <span className="text-copy-light">{item.name} x{item.quantity}</span>
-                            <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
+                            <span className="font-medium">{currency.symbol}{(item.price * item.quantity).toFixed(2)}</span>
                         </div>
                     ))}
                 </div>
                  <div className="border-t border-primary/20 my-3"></div>
                  <div className="flex justify-between font-bold text-xl">
                     <span>Total</span>
-                    <span>${order.total.toFixed(2)}</span>
+                    <span>{currency.symbol}{order.total.toFixed(2)}</span>
                 </div>
             </div>
 

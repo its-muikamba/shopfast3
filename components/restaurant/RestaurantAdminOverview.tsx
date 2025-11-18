@@ -51,7 +51,7 @@ const RestaurantAdminOverview: React.FC<RestaurantAdminOverviewProps> = ({ resta
             />
             <MetricCard 
                 title="Today's Revenue" 
-                value={`$${todaysRevenue.toFixed(2)}`}
+                value={`${restaurant.currency.symbol}${todaysRevenue.toFixed(2)}`}
                 icon={CreditCardIcon}
                 color="bg-brand-emerald"
             />

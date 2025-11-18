@@ -32,6 +32,7 @@ const RestaurantCard: React.FC<RestaurantCardProps> = ({ restaurant, onSelect })
         <div className="flex items-center gap-1 text-secondary">
           <StarIcon className="w-4 h-4 fill-current" />
           <span className="font-semibold">{restaurant.rating}</span>
+          <span className="text-copy-lighter text-xs">({restaurant.reviews.length})</span>
         </div>
         <div className="flex items-center gap-1 text-copy-light">
           <MapPinIcon className="w-4 h-4" />

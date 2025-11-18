@@ -1,4 +1,54 @@
-import React from 'react';
+import React, { useState } from 'react';
+
+export const StarRating: React.FC<{ rating: number; onRatingChange?: (rating: number) => void; displayOnly?: boolean; size?: 'sm' | 'md' | 'lg'; }> = ({ rating, onRatingChange, displayOnly = false, size = 'md' }) => {
+  const [hoverRating, setHoverRating] = useState(0);
+  const sizeClasses = {
+    sm: 'w-4 h-4',
+    md: 'w-6 h-6',
+    lg: 'w-8 h-8',
+  };
+
+  return (
+    <div className="flex items-center">
+      {[1, 2, 3, 4, 5].map((star) => {
+        const currentRating = hoverRating || rating;
+        return (
+          <label key={star} className={`${!displayOnly ? 'cursor-pointer' : ''}`}>
+            <input
+              type="radio"
+              name="rating"
+              value={star}
+              onClick={() => onRatingChange && onRatingChange(star)}
+              className="sr-only"
+              disabled={displayOnly}
+            />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={`${sizeClasses[size]} transition-colors ${
+                star <= currentRating
+                  ? 'text-primary fill-current'
+                  : 'text-copy-lighter'
+              }`}
+              onMouseEnter={() => !displayOnly && setHoverRating(star)}
+              onMouseLeave={() => !displayOnly && setHoverRating(0)}
+            >
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+          </label>
+        );
+      })}
+    </div>
+  );
+};
+
 
 export const MapPinIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -46,6 +96,13 @@ export const XIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 export const ChevronLeftIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
         <polyline points="15 18 9 12 15 6"></polyline>
+    </svg>
+);
+
+{/* FIX: Add missing ChevronRightIcon to fix import error. */}
+export const ChevronRightIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <polyline points="9 18 15 12 9 6"></polyline>
     </svg>
 );
 

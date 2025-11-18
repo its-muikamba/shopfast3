@@ -131,7 +131,7 @@ const RestaurantDashboard: React.FC<RestaurantDashboardProps> = (props) => {
       case RestaurantView.TABLE_MANAGEMENT:
         return <TableManagement restaurant={restaurant} onUpdateRestaurant={props.onUpdateRestaurant} />;
       case RestaurantView.REPORTS:
-        return <RestaurantReports data={props.reportData} />;
+        return <RestaurantReports data={props.reportData} restaurant={restaurant} />;
       case RestaurantView.DELIVERIES:
         return <DeliveryManagementView liveOrders={restaurantLiveOrders} onUpdateOrderStatus={props.onUpdateOrderStatus} />;
       case RestaurantView.DASHBOARD:

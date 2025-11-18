@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Restaurant, CartItem, Order, StaffRole, StaffMember, MenuItem, OrderContext, ServerAlert, OrderStatus, RestaurantReportData, BillingHistory, SupportTicket, TicketStatus, Tab, User, LiveOrder, Transaction, PaymentMethod } from './types';
+import { View, Restaurant, CartItem, Order, StaffRole, StaffMember, MenuItem, OrderContext, ServerAlert, OrderStatus, RestaurantReportData, BillingHistory, SupportTicket, TicketStatus, Tab, User, LiveOrder, Transaction, PaymentMethod, Review } from './types';
 import { RESTAURANTS, MENUS, STAFF_MEMBERS, INITIAL_ACTIVE_ORDERS, RESTAURANT_REPORTS, BILLING_HISTORY, SUPPORT_TICKETS } from './constants';
 import DiscoverScreen from './components/DiscoverScreen';
 import MenuScreen from './components/MenuScreen';
@@ -267,6 +267,7 @@ const App: React.FC = () => {
         status: newOrder.status,
         paymentStatus: 'unpaid',
         userId: newOrder.userId,
+        isReviewed: false,
         ...orderContext,
     };
     updateLiveOrders(prev => [newLiveOrder, ...prev]);
@@ -345,11 +346,41 @@ const App: React.FC = () => {
     updateServerAlerts(prev => prev.filter(a => a.id !== alertId));
   };
 
+  const handleAddReview = (restaurantId: string, orderId: string, reviewData: Omit<Review, 'id' | 'userId' | 'userName'>) => {
+    if (!currentUser) {
+        alert("You must be logged in to leave a review.");
+        return;
+    }
+
+    const newReview: Review = {
+        id: `rev-${Date.now()}`,
+        userId: currentUser.id,
+        userName: currentUser.name,
+        ...reviewData,
+    };
+
+    updateRestaurants(prev => {
+        const newRestaurants = prev.map(r => {
+            if (r.id === restaurantId) {
+                const updatedReviews = [...r.reviews, newReview];
+                const newTotalRating = updatedReviews.reduce((sum, rev) => sum + rev.rating, 0);
+                const newAverageRating = updatedReviews.length > 0 ? parseFloat((newTotalRating / updatedReviews.length).toFixed(1)) : 0;
+                
+                return { ...r, reviews: updatedReviews, rating: newAverageRating };
+            }
+            return r;
+        });
+        return newRestaurants;
+    });
+
+    updateLiveOrders(prev => prev.map(o => o.id === orderId ? { ...o, isReviewed: true } : o));
+};
+
 
   // HQ App Logic (remains unchanged)
   const handleHqLogin = () => setIsHqLoggedIn(true);
   const handleHqLogout = () => setIsHqLoggedIn(false);
-  const handleAddRestaurant = (payload: { restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme' | 'categories' | 'tables' | 'serviceRequests' | 'paymentSettings' | 'nextBillingDate' | 'deliveryConfig'>, adminData: Omit<StaffMember, 'id' | 'restaurantId' | 'role' | 'status'>}) => {
+  const handleAddRestaurant = (payload: { restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme' | 'currency' | 'categories' | 'tables' | 'serviceRequests' | 'paymentSettings' | 'nextBillingDate' | 'deliveryConfig' | 'reviews'>, adminData: Omit<StaffMember, 'id' | 'restaurantId' | 'role' | 'status'>}) => {
     const { restaurantData, adminData } = payload;
     const newRestaurantId = `r${Date.now()}`;
     
@@ -359,15 +390,17 @@ const App: React.FC = () => {
       rating: 0,
       distance: 'new',
       nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      currency: { code: 'KES', symbol: 'Ksh' },
       categories: ['Starters', 'Mains', 'Desserts', 'Drinks'],
       tables: [],
       serviceRequests: [],
+      reviews: [],
        paymentSettings: { stripe: { enabled: false }, mpesa: { enabled: false }, pesapal: { enabled: false } },
       deliveryConfig: { enabledByAdmin: false, deliveryFee: 0, deliveryRadius: 0, estimatedTime: 0, },
       theme: {
           welcomeMessage: `Welcome to ${restaurantData.name}!`,
           primaryColor: '#8A5DFF',
-          dailySpecial: { title: '', description: '', active: false, }
+          specials: [],
       }
     };
     
@@ -492,7 +525,7 @@ const App: React.FC = () => {
                     liveOrders={liveOrders}
                 />
             )}
-            {activeTab === Tab.PROFILE && <ProfileScreen user={currentUser} onLogin={handleLogin} onLogout={handleLogout} orders={liveOrders} restaurants={restaurants} />}
+            {activeTab === Tab.PROFILE && <ProfileScreen user={currentUser} onLogin={handleLogin} onLogout={handleLogout} orders={liveOrders} restaurants={restaurants} onAddReview={handleAddReview} />}
         </main>
         <BottomNavBar activeTab={activeTab} onTabChange={setActiveTab} hasActiveOrder={!!order} />
       </div>

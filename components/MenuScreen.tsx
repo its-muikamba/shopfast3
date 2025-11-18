@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Restaurant, MenuItem, CartItem, AiRecommendation, OrderContext } from '../types';
+import { Restaurant, MenuItem, CartItem, AiRecommendation, OrderContext, Review } from '../types';
 import getMenuRecommendations from '../services/geminiService';
-import { ChevronLeftIcon, ShoppingCartIcon, SparklesIcon, XIcon, PlusIcon, MinusIcon, CheckCircleIcon, HandIcon } from './Icons';
+import { ChevronLeftIcon, ShoppingCartIcon, SparklesIcon, XIcon, PlusIcon, MinusIcon, CheckCircleIcon, HandIcon, ChevronRightIcon } from './Icons';
+import { StarRating } from './Icons';
 import FloatingActionButton from './FloatingActionButton';
 import ServiceRequestModal from './ServiceRequestModal';
 
@@ -15,7 +16,7 @@ const Tag: React.FC<{ label: string }> = ({ label }) => {
     return <span className={`text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full ${colors[label] || 'bg-slate-200 text-slate-800'}`}>{label}</span>
 };
 
-const MenuItemCard: React.FC<{ item: MenuItem; onAdd: () => void; }> = ({ item, onAdd }) => {
+const MenuItemCard: React.FC<{ item: MenuItem; onAdd: () => void; currencySymbol: string; }> = ({ item, onAdd, currencySymbol }) => {
     const [isAdded, setIsAdded] = useState(false);
 
     const handleAddToCart = () => {
@@ -38,7 +39,7 @@ const MenuItemCard: React.FC<{ item: MenuItem; onAdd: () => void; }> = ({ item, 
                     {item.tags.map(tag => <Tag key={tag} label={tag} />)}
                 </div>
                 <div className="flex justify-between items-center mt-4">
-                    <span className="font-bold text-copy text-lg">${item.price.toFixed(2)}</span>
+                    <span className="font-bold text-copy text-lg">{currencySymbol}{item.price.toFixed(2)}</span>
                     <button 
                         onClick={handleAddToCart} 
                         className={`
@@ -99,7 +100,7 @@ const Cart: React.FC<{
                                 <img src={item.imageUrl} alt={item.name} className="w-16 h-16 rounded-lg object-cover" />
                                 <div className="flex-grow">
                                     <h5 className="font-semibold text-copy">{item.name}</h5>
-                                    <p className="text-sm text-copy-light">${item.price.toFixed(2)}</p>
+                                    <p className="text-sm text-copy-light">{restaurant.currency.symbol}{item.price.toFixed(2)}</p>
                                 </div>
                                 <div className="flex items-center gap-2 bg-surface-light rounded-full p-1">
                                     <button onClick={() => onUpdateCartQuantity(item.id, item.quantity - 1)} className="w-7 h-7 flex items-center justify-center rounded-full bg-white hover:bg-primary"><MinusIcon className="w-4 h-4" /></button>
@@ -116,18 +117,18 @@ const Cart: React.FC<{
                         <div className="space-y-1 text-sm mb-4 text-copy-light">
                             <div className="flex justify-between">
                                 <span>Subtotal</span>
-                                <span>${subtotal.toFixed(2)}</span>
+                                <span>{restaurant.currency.symbol}{subtotal.toFixed(2)}</span>
                             </div>
                             {deliveryFee > 0 && (
                                 <div className="flex justify-between">
                                     <span>Delivery Fee</span>
-                                    <span>${deliveryFee.toFixed(2)}</span>
+                                    <span>{restaurant.currency.symbol}{deliveryFee.toFixed(2)}</span>
                                 </div>
                             )}
                         </div>
                         <div className="flex justify-between items-center font-bold text-lg mb-4 text-copy">
                             <span>Total</span>
-                            <span>${total.toFixed(2)}</span>
+                            <span>{restaurant.currency.symbol}{total.toFixed(2)}</span>
                         </div>
                         <button onClick={onPlaceOrder} className="w-full bg-primary text-brand-charcoal font-bold py-4 rounded-xl shadow-lg hover:bg-primary/90 transition shadow-glow-primary">
                             Place Order
@@ -182,6 +183,24 @@ const RecommendationModal: React.FC<{ isOpen: boolean; onClose: () => void; reco
     );
 }
 
+const ReviewCard: React.FC<{ review: Review }> = ({ review }) => (
+    <div className="glass-card p-4 rounded-xl">
+        <div className="flex items-center mb-2">
+            <div className="w-10 h-10 rounded-full bg-surface-light flex items-center justify-center font-bold text-copy-rich">
+                {review.userName.charAt(0)}
+            </div>
+            <div className="ml-3">
+                <p className="font-bold text-copy">{review.userName}</p>
+                <p className="text-xs text-copy-light">{new Date(review.timestamp).toLocaleDateString()}</p>
+            </div>
+        </div>
+        <div className="flex items-center mb-2">
+            <StarRating rating={review.rating} displayOnly={true} size="sm" />
+        </div>
+        <p className="text-copy-light text-sm italic">"{review.comment}"</p>
+    </div>
+);
+
 
 interface MenuScreenProps {
   restaurant: Restaurant;
@@ -196,6 +215,7 @@ interface MenuScreenProps {
 }
 
 const MenuScreen: React.FC<MenuScreenProps> = ({ restaurant, menu, cart, orderContext, onAddToCart, onUpdateCartQuantity, onPlaceOrder, onBack, onCallServer }) => {
+  const [view, setView] = useState<'menu' | 'reviews'>('menu');
   const [activeCategory, setActiveCategory] = useState<string>(restaurant.categories[0] || '');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isRecoModalOpen, setIsRecoModalOpen] = useState(false);
@@ -206,6 +226,30 @@ const MenuScreen: React.FC<MenuScreenProps> = ({ restaurant, menu, cart, orderCo
   const categories = useMemo(() => restaurant.categories, [restaurant.categories]);
   const filteredMenu = useMemo(() => menu.filter(item => item.category === activeCategory), [menu, activeCategory]);
   const cartItemCount = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
+  
+  const { primaryColor, welcomeMessage, specials } = restaurant.theme;
+  const activeSpecials = useMemo(() => specials.filter(s => s.active), [specials]);
+  const [currentSpecialIndex, setCurrentSpecialIndex] = useState(0);
+  
+  const averageRating = restaurant.rating;
+  const reviewCount = restaurant.reviews.length;
+
+  useEffect(() => {
+    if (activeSpecials.length > 1) {
+      const timer = setInterval(() => {
+        setCurrentSpecialIndex(prevIndex => (prevIndex + 1) % activeSpecials.length);
+      }, 5000); // Change slide every 5 seconds
+      return () => clearInterval(timer);
+    }
+  }, [activeSpecials.length]);
+
+  const nextSpecial = () => {
+    setCurrentSpecialIndex(prevIndex => (prevIndex + 1) % activeSpecials.length);
+  };
+
+  const prevSpecial = () => {
+    setCurrentSpecialIndex(prevIndex => (prevIndex - 1 + activeSpecials.length) % activeSpecials.length);
+  };
   
   useEffect(() => {
       // Ensure active category is valid if categories change
@@ -227,7 +271,6 @@ const MenuScreen: React.FC<MenuScreenProps> = ({ restaurant, menu, cart, orderCo
     // The modal will show a confirmation and then close itself.
   };
   
-  const { primaryColor, welcomeMessage, dailySpecial } = restaurant.theme;
 
   return (
     <div className="min-h-screen pb-32">
@@ -237,9 +280,19 @@ const MenuScreen: React.FC<MenuScreenProps> = ({ restaurant, menu, cart, orderCo
         <button onClick={onBack} className="absolute top-4 left-4 bg-black/30 backdrop-blur-sm rounded-full p-2 text-white">
             <ChevronLeftIcon className="w-6 h-6" />
         </button>
-        <div className="absolute bottom-0 left-0 p-4 md:p-6 flex items-center gap-4">
-            <img src={restaurant.logoUrl} alt={`${restaurant.name} logo`} className="w-16 h-16 md:w-24 md:h-24 rounded-full border-4 border-surface object-cover shadow-lg" />
-            <h1 className="font-sans text-3xl md:text-5xl font-bold text-white" style={{textShadow: '0 2px 10px rgba(0,0,0,0.5)'}}>{restaurant.name}</h1>
+        <div className="absolute bottom-0 left-0 p-4 md:p-6 w-full">
+            <div className="flex items-center gap-4">
+                <img src={restaurant.logoUrl} alt={`${restaurant.name} logo`} className="w-16 h-16 md:w-24 md:h-24 rounded-full border-4 border-surface object-cover shadow-lg" />
+                <div>
+                     <h1 className="font-sans text-3xl md:text-5xl font-bold text-white" style={{textShadow: '0 2px 10px rgba(0,0,0,0.5)'}}>{restaurant.name}</h1>
+                     {reviewCount > 0 && (
+                        <div className="flex items-center gap-2 mt-1 bg-black/30 backdrop-blur-sm p-1 rounded-full w-fit">
+                            <StarRating rating={averageRating} displayOnly size="sm" />
+                            <span className="text-white font-semibold text-sm pr-2">{averageRating.toFixed(1)} ({reviewCount} reviews)</span>
+                        </div>
+                     )}
+                </div>
+            </div>
         </div>
       </div>
       
@@ -249,42 +302,93 @@ const MenuScreen: React.FC<MenuScreenProps> = ({ restaurant, menu, cart, orderCo
         </div>
       )}
 
-      {dailySpecial && dailySpecial.active && (
-        <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl my-4">
-            <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 pt-1">
-                    <SparklesIcon className="w-5 h-5 text-yellow-500" />
+      {activeSpecials.length > 0 && (
+        <div className="p-4 my-4 relative overflow-hidden rounded-xl aspect-video glass-card">
+            {activeSpecials.map((special, index) => (
+                <div key={special.id} className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${index === currentSpecialIndex ? 'opacity-100' : 'opacity-0'}`}>
+                    {special.mediaType === 'video' && special.mediaUrl ? (
+                         <video src={special.mediaUrl} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                    ) : (
+                        <img src={special.mediaUrl} alt={special.title} className="w-full h-full object-cover" />
+                    )}
+                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent"></div>
+                     <div className="absolute bottom-0 left-0 p-4 text-white">
+                        <h3 className="font-bold text-lg">{special.title}</h3>
+                        <p className="text-sm text-white/90">{special.description}</p>
+                    </div>
                 </div>
-                <div>
-                    <h3 className="font-bold text-yellow-700">{dailySpecial.title}</h3>
-                    <p className="text-sm text-yellow-600/80 mt-1">{dailySpecial.description}</p>
-                </div>
-            </div>
+            ))}
+
+            {activeSpecials.length > 1 && (
+                <>
+                    <button onClick={prevSpecial} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition">
+                        <ChevronLeftIcon className="w-5 h-5" />
+                    </button>
+                    <button onClick={nextSpecial} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition">
+                        <ChevronRightIcon className="w-5 h-5" />
+                    </button>
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
+                        {activeSpecials.map((_, index) => (
+                            <div key={index} className={`w-2 h-2 rounded-full transition-all ${index === currentSpecialIndex ? 'bg-white w-4' : 'bg-white/50'}`}></div>
+                        ))}
+                    </div>
+                </>
+            )}
         </div>
       )}
 
       <div className="p-4 sticky top-0 bg-background/80 backdrop-blur-xl z-10 shadow-sm -mx-4">
         <div className="flex justify-between items-center container mx-auto">
              <div className="flex space-x-2 overflow-x-auto pb-2 -mb-2">
-                {categories.map(category => (
-                    <button
-                        key={category}
-                        onClick={() => setActiveCategory(category)}
-                        className={`px-4 py-2 rounded-full font-semibold text-sm whitespace-nowrap transition-colors ${activeCategory === category ? 'bg-primary text-brand-charcoal shadow-glow-primary' : 'bg-surface-light text-copy-light hover:bg-surface'}`}
-                    >
-                        {category}
-                    </button>
-                ))}
+                <button
+                    onClick={() => setView('menu')}
+                    className={`px-4 py-2 rounded-full font-semibold text-sm whitespace-nowrap transition-colors ${view === 'menu' ? 'bg-primary text-brand-charcoal shadow-glow-primary' : 'bg-surface-light text-copy-light hover:bg-surface'}`}
+                >
+                    Menu
+                </button>
+                <button
+                    onClick={() => setView('reviews')}
+                    className={`px-4 py-2 rounded-full font-semibold text-sm whitespace-nowrap transition-colors ${view === 'reviews' ? 'bg-primary text-brand-charcoal shadow-glow-primary' : 'bg-surface-light text-copy-light hover:bg-surface'}`}
+                >
+                    Reviews ({reviewCount})
+                </button>
             </div>
-            <button onClick={handleGetRecommendation} className="ml-2 p-2 rounded-full text-brand-charcoal flex-shrink-0 bg-primary shadow-glow-primary">
-                <SparklesIcon className="w-5 h-5" />
-            </button>
+            {view === 'menu' && (
+                <button onClick={handleGetRecommendation} className="ml-2 p-2 rounded-full text-brand-charcoal flex-shrink-0 bg-primary shadow-glow-primary">
+                    <SparklesIcon className="w-5 h-5" />
+                </button>
+            )}
         </div>
       </div>
       
-      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 -mx-4">
-        {filteredMenu.map(item => <MenuItemCard key={item.id} item={item} onAdd={() => onAddToCart(item)} />)}
-      </div>
+      {view === 'menu' ? (
+        <>
+            <div className="px-4 pt-4">
+                 <div className="flex space-x-2 overflow-x-auto pb-2">
+                    {categories.map(category => (
+                        <button
+                            key={category}
+                            onClick={() => setActiveCategory(category)}
+                            className={`px-4 py-2 rounded-full font-semibold text-sm whitespace-nowrap transition-colors ${activeCategory === category ? 'bg-primary/50 text-brand-charcoal' : 'bg-surface-light text-copy-light hover:bg-surface'}`}
+                        >
+                            {category}
+                        </button>
+                    ))}
+                </div>
+            </div>
+            <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filteredMenu.map(item => <MenuItemCard key={item.id} item={item} onAdd={() => onAddToCart(item)} currencySymbol={restaurant.currency.symbol} />)}
+            </div>
+        </>
+        ) : (
+            <div className="p-4 space-y-4">
+                {restaurant.reviews.length > 0 ? (
+                    restaurant.reviews.sort((a,b) => b.timestamp - a.timestamp).map(review => <ReviewCard key={review.id} review={review} />)
+                ) : (
+                    <p className="text-center text-copy-light py-10">No reviews yet. Be the first to leave one!</p>
+                )}
+            </div>
+        )}
 
       {cartItemCount > 0 && (
          <div className="fixed bottom-28 left-0 w-full p-4 pointer-events-none">

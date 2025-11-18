@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { User, LiveOrder, Restaurant } from '../types';
+import { User, LiveOrder, Restaurant, Review } from '../types';
 import { LogOutIcon, UserCircleIcon } from './Icons';
 import UsageStats from './UsageStats';
 import OrderHistoryCard from './OrderHistoryCard';
@@ -71,21 +71,22 @@ interface ProfileScreenProps {
   onLogout: () => void;
   orders: LiveOrder[];
   restaurants: Restaurant[];
+  onAddReview: (restaurantId: string, orderId: string, reviewData: Omit<Review, 'id' | 'userId' | 'userName'>) => void;
 }
 
-const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onLogin, onLogout, orders, restaurants }) => {
+const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onLogin, onLogout, orders, restaurants, onAddReview }) => {
     const [showLogin, setShowLogin] = useState(true);
 
-    const { userOrders, totalSpent, favoriteRestaurant } = useMemo(() => {
+    const { userOrders, totalSpent, favoriteRestaurant, currencySymbol } = useMemo(() => {
         if (!user) {
-            return { userOrders: [], totalSpent: 0, favoriteRestaurant: 'N/A' };
+            return { userOrders: [], totalSpent: 0, favoriteRestaurant: 'N/A', currencySymbol: null };
         }
 
         const userOrders = orders.filter(o => o.userId === user.id);
         const totalSpent = userOrders.reduce((sum, order) => sum + order.total, 0);
 
         if (userOrders.length === 0) {
-            return { userOrders, totalSpent, favoriteRestaurant: 'N/A' };
+            return { userOrders, totalSpent, favoriteRestaurant: 'N/A', currencySymbol: null };
         }
 
         const restaurantCounts = userOrders.reduce((acc, order) => {
@@ -96,7 +97,20 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onLogin, onLogout, 
         const favoriteId = Object.keys(restaurantCounts).reduce((a, b) => restaurantCounts[a] > restaurantCounts[b] ? a : b);
         const favoriteRestaurant = restaurants.find(r => r.id === favoriteId)?.name || 'N/A';
         
-        return { userOrders, totalSpent, favoriteRestaurant };
+        let symbol: string | null = null;
+        const firstRestaurant = restaurants.find(r => r.id === userOrders[0].restaurantId);
+        if (firstRestaurant) {
+            const firstCurrencyCode = firstRestaurant.currency.code;
+            const allSameCurrency = userOrders.every(order => {
+                const restaurant = restaurants.find(r => r.id === order.restaurantId);
+                return restaurant?.currency.code === firstCurrencyCode;
+            });
+            if (allSameCurrency) {
+                symbol = firstRestaurant.currency.symbol;
+            }
+        }
+        
+        return { userOrders, totalSpent, favoriteRestaurant, currencySymbol: symbol };
 
     }, [user, orders, restaurants]);
 
@@ -125,6 +139,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onLogin, onLogout, 
                 totalSpent={totalSpent}
                 orderCount={userOrders.length}
                 favoriteRestaurant={favoriteRestaurant}
+                currencySymbol={currencySymbol}
             />
 
             <div className="mt-8">
@@ -134,7 +149,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onLogin, onLogout, 
                         {userOrders.map(order => {
                             const restaurant = restaurants.find(r => r.id === order.restaurantId);
                             if (!restaurant) return null;
-                            return <OrderHistoryCard key={order.id} order={order} restaurant={restaurant} />;
+                            return <OrderHistoryCard key={order.id} order={order} restaurant={restaurant} onAddReview={onAddReview} />;
                         })}
                     </div>
                 ) : (

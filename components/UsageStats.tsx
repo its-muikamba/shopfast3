@@ -5,6 +5,7 @@ interface UsageStatsProps {
     totalSpent: number;
     orderCount: number;
     favoriteRestaurant: string;
+    currencySymbol: string | null;
 }
 
 const StatCard: React.FC<{ title: string; value: string | number; icon: React.ElementType }> = ({ title, value, icon: Icon }) => (
@@ -21,12 +22,12 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: React.El
     </div>
 );
 
-const UsageStats: React.FC<UsageStatsProps> = ({ totalSpent, orderCount, favoriteRestaurant }) => {
+const UsageStats: React.FC<UsageStatsProps> = ({ totalSpent, orderCount, favoriteRestaurant, currencySymbol }) => {
     return (
         <div className="flex flex-col sm:flex-row gap-4">
             <StatCard 
                 title="Total Spent"
-                value={`$${totalSpent.toFixed(2)}`}
+                value={`${currencySymbol || ''}${totalSpent.toFixed(2)}`}
                 icon={CreditCardIcon}
             />
             <StatCard 
