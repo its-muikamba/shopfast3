@@ -47,6 +47,9 @@ const TableRepresentation: React.FC<{
         if (alert) {
             return 'bg-brand-orange/10 border-brand-orange shadow-lg animate-pulse-glow-orange';
         }
+        if (order?.paymentStatus === 'paid') {
+            return 'bg-emerald-500/10 border-emerald-500';
+        }
         if (order?.status === 'Served') {
              return 'bg-emerald-500/10 border-emerald-500';
         }
@@ -61,6 +64,7 @@ const TableRepresentation: React.FC<{
 
     const graphicColorClass = useMemo(() => {
         if (alert) return 'text-brand-orange';
+        if (order?.paymentStatus === 'paid') return 'text-emerald-500';
         if (order?.status === 'Served') return 'text-emerald-500';
         if (order?.status === 'On Route') return 'text-green-500';
         if (order) return 'text-yellow-500';
@@ -72,7 +76,11 @@ const TableRepresentation: React.FC<{
         return order.items.reduce((sum, item) => sum + item.quantity, 0);
     }, [order]);
 
-    const statusText = alert ? "Needs Attention" : order?.status === 'Served' ? 'Served' : order ? "Occupied" : "Available";
+    const statusText = alert ? "Needs Attention" 
+        : order?.paymentStatus === 'paid' ? "Paid"
+        : order?.status === 'Served' ? 'Served' 
+        : order ? "Occupied" 
+        : "Available";
     
     const [elapsedTime, setElapsedTime] = useState<string | null>(null);
 
@@ -112,6 +120,9 @@ const TableRepresentation: React.FC<{
                      <div className="text-xs space-y-1 text-copy-light text-left">
                         <p><strong>Order:</strong> {order.id.slice(-6)} ({totalItems} items)</p>
                         <p><strong>Status:</strong> <span className={`font-semibold ${statusColors[order.status].text}`}>{order.status}</span></p>
+                        {order.paymentStatus === 'paid' && order.paymentMethod && (
+                           <p><strong>Payment:</strong> <span className="font-semibold capitalize text-emerald-600">Paid via {order.paymentMethod}</span></p>
+                        )}
                          {elapsedTime && <p><strong>Time:</strong> <span className="font-mono">{elapsedTime}</span></p>}
                         {order.status === 'On Route' && (
                              <button onClick={() => onUpdateOrderStatus(order.id, 'Served')} className="w-full text-xs mt-1 bg-brand-emerald text-white font-semibold py-1 px-2 rounded-md hover:bg-opacity-80 transition flex items-center justify-center gap-1">

@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Order } from '../types';
+import { Order, PaymentMethod } from '../types';
 import { CheckCircleIcon, QrCodeIcon, XIcon, StripeIcon, MpesaIcon, CreditCardIcon } from './Icons';
 
 // FIX: Declare the global QRCode variable to inform TypeScript of its existence.
 // This is necessary because the library is loaded via a script tag in index.html.
 declare var QRCode: any;
 
-type PaymentMethod = 'stripe' | 'mpesa' | 'pesapal';
 
 const PaymentModal: React.FC<{
     method: PaymentMethod,
@@ -45,6 +44,17 @@ const PaymentModal: React.FC<{
                         </button>
                     </form>
                 );
+             case 'pesapal':
+                return (
+                    <form onSubmit={(e) => { e.preventDefault(); onConfirm(); }}>
+                        <h3 className="text-lg font-semibold mb-2 text-copy">Pay with Pesapal</h3>
+                        <p className="text-sm text-copy-light mb-4">You will be redirected to complete the payment.</p>
+                        <input type="email" placeholder="e.g. your@email.com" className="w-full shadcn-input" required />
+                         <button type="submit" disabled={isProcessing} className="w-full mt-6 bg-brand-sky text-white font-bold py-3 rounded-lg disabled:bg-gray-400">
+                            {isProcessing ? 'Processing...' : 'Continue to Pesapal'}
+                        </button>
+                    </form>
+                );
             default: return null;
         }
     }
@@ -61,87 +71,69 @@ const PaymentModal: React.FC<{
     )
 }
 
+const ReceiptView: React.FC<{ order: Order; onFinish: () => void }> = ({ order, onFinish }) => {
+    return (
+        <div className="min-h-screen flex flex-col justify-center items-center p-6 text-center bg-gradient-to-br from-secondary to-primary">
+            <div className="w-full max-w-md bg-white text-brand-charcoal rounded-2xl shadow-2xl p-8">
+                <CheckCircleIcon className="w-16 h-16 text-secondary mx-auto mb-4" />
+                <h1 className="font-sans text-3xl font-bold mb-2">Payment Successful!</h1>
+                <p className="text-gray-600 mb-6">Thank you for your order, {order.orderName}.</p>
 
-const PaymentScreen: React.FC<{ order: Order; onPaymentSuccess: () => void; onFinish: () => void; }> = ({ order, onPaymentSuccess, onFinish }) => {
+                <div className="text-left border-t border-b border-gray-200 py-4 my-4 space-y-2">
+                    <h2 className="font-bold text-lg mb-2">Order Summary</h2>
+                    {order.items.map(item => (
+                        <div key={item.id} className="flex justify-between text-sm">
+                            <span className="text-gray-600">{item.name} x{item.quantity}</span>
+                            <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
+                        </div>
+                    ))}
+                </div>
+                
+                <div className="text-left space-y-1 my-4">
+                     <div className="flex justify-between font-bold text-xl">
+                        <span>Total Paid</span>
+                        <span>${order.total.toFixed(2)}</span>
+                    </div>
+                     <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Payment Method</span>
+                        <span className="font-semibold capitalize">{order.paymentMethod}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Order ID</span>
+                        <span className="font-mono text-xs">{order.id}</span>
+                    </div>
+                </div>
+
+                 <button 
+                    onClick={onFinish}
+                    className="w-full bg-brand-charcoal text-white font-bold py-3 px-8 rounded-lg text-lg transform hover:scale-105 transition-transform mt-6"
+                >
+                    Back to Home
+                </button>
+            </div>
+        </div>
+    );
+}
+
+
+const PaymentScreen: React.FC<{ order: Order; onPaymentSuccess: (method: PaymentMethod) => void; onFinish: () => void; }> = ({ order, onPaymentSuccess, onFinish }) => {
     const [isProcessing, setIsProcessing] = useState(false);
-    const [isVerified, setIsVerified] = useState(false);
     const [activePaymentModal, setActivePaymentModal] = useState<PaymentMethod | null>(null);
-    const qrCodeRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (order.status === 'Paid') {
-            const timer = setTimeout(() => setIsVerified(true), 4000); // Simulate server scanning QR
-            return () => clearTimeout(timer);
-        }
-    }, [order.status]);
-
-     useEffect(() => {
-        if (order.status === 'Paid' && qrCodeRef.current && typeof QRCode !== 'undefined') {
-            qrCodeRef.current.innerHTML = '';
-            new QRCode(qrCodeRef.current, {
-                text: JSON.stringify({ orderId: order.id, total: order.total }),
-                width: 224,
-                height: 224,
-                colorDark : "#1A202C",
-                colorLight : "transparent",
-            });
-        }
-    }, [order.status, order.id, order.total]);
-
-
+    
     const handlePay = () => {
+        if (!activePaymentModal) return;
         setIsProcessing(true);
         setTimeout(() => {
-            onPaymentSuccess();
+            onPaymentSuccess(activePaymentModal);
             setIsProcessing(false);
             setActivePaymentModal(null);
         }, 2000); // Simulate payment processing
     };
     
     const { theme, paymentSettings } = order.restaurant;
-
-    if (isVerified) {
-        return (
-            <div 
-                className="min-h-screen flex flex-col justify-center items-center text-brand-charcoal p-8 text-center transition-colors duration-500 bg-gradient-to-br from-primary to-secondary"
-            >
-                <img src={order.restaurant.logoUrl} alt={`${order.restaurant.name} Logo`} className="w-24 h-24 rounded-full mx-auto mb-4 shadow-lg object-cover" />
-                <h1 className="font-sans text-4xl font-bold mb-2">Payment Verified!</h1>
-                <p className="text-lg opacity-90 mb-2">Thank you, {order.orderName}, for dining with {order.restaurant.name}.</p>
-                {order.tableNumber && <p className="text-lg opacity-90 mb-8">Your order for Table {order.tableNumber} is complete.</p>}
-                <button 
-                    onClick={onFinish}
-                    className="bg-white text-primary font-bold py-3 px-8 rounded-full shadow-lg text-lg transform hover:scale-105 transition-transform"
-                >
-                    Back to Home
-                </button>
-            </div>
-        );
-    }
     
-    if (order.status === 'Paid') {
-        return (
-             <div className="min-h-screen p-6 flex flex-col justify-center items-center text-center">
-                <img src={order.restaurant.logoUrl} alt={`${order.restaurant.name} Logo`} className="w-20 h-20 rounded-full mx-auto mb-4 shadow-md object-cover" />
-                <h1 className="font-sans text-3xl font-bold text-copy">Payment Successful!</h1>
-                <p className="text-copy-light mb-6">Show this QR code to your server for verification.</p>
-                
-                <div className="glass-card p-6 rounded-2xl shadow-lg">
-                    <div ref={qrCodeRef} className="w-56 h-56 flex items-center justify-center">
-                        {/* QR Code will be rendered here */}
-                    </div>
-                </div>
-
-                <div className="mt-6 text-center w-full max-w-sm">
-                     <p className="text-sm text-copy-light">Order for {order.orderName}</p>
-                     {order.tableNumber && <p className="text-sm text-copy-light">Table: {order.tableNumber}</p>}
-                    <p className="text-3xl font-bold text-copy mt-2">${order.total.toFixed(2)}</p>
-                    <div className="mt-4 text-secondary animate-pulse">
-                        Waiting for server verification...
-                    </div>
-                </div>
-            </div>
-        )
+    if (order.paymentStatus === 'paid') {
+        return <ReceiptView order={order} onFinish={onFinish} />
     }
 
     return (
@@ -174,18 +166,18 @@ const PaymentScreen: React.FC<{ order: Order; onPaymentSuccess: () => void; onFi
                 <h3 className="font-bold text-lg mb-3">Payment Method</h3>
                 <div className="space-y-3">
                     {paymentSettings.stripe.enabled && (
-                        <button onClick={() => setActivePaymentModal('stripe')} className="w-full text-copy font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-3 transition hover:bg-surface-light bg-surface shadow-sm border">
-                           <StripeIcon className="w-10 h-6" /> <span>Pay with Card</span>
+                        <button onClick={() => setActivePaymentModal('stripe')} className="w-full text-copy-rich font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-3 transition hover:bg-surface-light bg-surface shadow-sm border border-border">
+                           <CreditCardIcon className="w-6 h-6" /> <span>Pay with Card</span>
                         </button>
                     )}
                      {paymentSettings.mpesa.enabled && (
-                        <button onClick={() => setActivePaymentModal('mpesa')} className="w-full text-copy font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-3 transition hover:bg-surface-light bg-surface shadow-sm border">
-                            <MpesaIcon className="h-6" /> <span>Pay with M-Pesa</span>
+                        <button onClick={() => setActivePaymentModal('mpesa')} className="w-full text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-3 transition hover:bg-opacity-90 bg-brand-emerald shadow-sm border border-brand-emerald">
+                            <span className="font-bold text-xl">M-PESA</span>
                         </button>
                     )}
                      {paymentSettings.pesapal.enabled && (
-                        <button onClick={() => setActivePaymentModal('pesapal')} className="w-full text-copy font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-3 transition hover:bg-surface-light bg-surface shadow-sm border">
-                           <CreditCardIcon className="w-6 h-6" /> <span>Pay with Pesapal</span>
+                        <button onClick={() => setActivePaymentModal('pesapal')} className="w-full text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-3 transition hover:bg-opacity-90 bg-brand-sky shadow-sm border border-brand-sky">
+                           <span>Pay with Pesapal</span>
                         </button>
                     )}
                 </div>

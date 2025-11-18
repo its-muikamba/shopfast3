@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Restaurant, StaffMember, BillingHistory, SupportTicket, TicketStatus } from '../../types';
+import { Restaurant, StaffMember, BillingHistory, SupportTicket, TicketStatus, LiveOrder, Transaction } from '../../types';
 import { HQView } from '../../types';
 import HQOverview from './HQOverview';
 import HQRestaurants from './HQRestaurants';
@@ -17,6 +17,8 @@ interface HQDashboardProps {
   staff: StaffMember[];
   billingHistory: BillingHistory[];
   supportTickets: SupportTicket[];
+  liveOrders: LiveOrder[];
+  transactions: Transaction[];
   onUpdateTicketStatus: (ticketId: string, newStatus: TicketStatus) => void;
   onLogout: () => void;
   onAddRestaurant: (payload: { 
@@ -40,6 +42,8 @@ const HQDashboard: React.FC<HQDashboardProps> = ({
     staff, 
     billingHistory,
     supportTickets,
+    liveOrders,
+    transactions,
     onUpdateTicketStatus,
     onLogout, 
     onAddRestaurant, 
@@ -63,7 +67,7 @@ const HQDashboard: React.FC<HQDashboardProps> = ({
         return <HQAuditLogs />;
       case HQView.OVERVIEW:
       default:
-        return <HQOverview />;
+        return <HQOverview restaurants={restaurants} liveOrders={liveOrders} transactions={transactions} supportTickets={supportTickets} />;
     }
   };
   

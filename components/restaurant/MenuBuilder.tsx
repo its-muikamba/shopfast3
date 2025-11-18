@@ -1,7 +1,7 @@
 // FIX: Import useEffect to resolve 'Cannot find name' error.
 import React, { useState, useMemo, useEffect } from 'react';
 import { Restaurant, MenuItem, MenuItemTag } from '../../types';
-import { PlusIcon, EditIcon, Trash2Icon } from '../Icons';
+import { PlusIcon, EditIcon, Trash2Icon, XCircleIcon } from '../Icons';
 
 const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -11,6 +11,28 @@ const fileToBase64 = (file: File): Promise<string> => {
         reader.onerror = error => reject(error);
     });
 };
+
+const ToggleSwitch: React.FC<{ checked: boolean; onChange: () => void }> = ({ checked, onChange }) => {
+  return (
+    <button
+      type="button"
+      className={`${
+        checked ? 'bg-brand-emerald' : 'bg-gray-400 theme-dark:bg-surface-light'
+      } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-gold focus:ring-offset-2`}
+      role="switch"
+      aria-checked={checked}
+      onClick={onChange}
+    >
+      <span
+        aria-hidden="true"
+        className={`${
+          checked ? 'translate-x-5' : 'translate-x-0'
+        } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+      />
+    </button>
+  );
+};
+
 
 const ConfirmationModal: React.FC<{
     isOpen: boolean;
@@ -104,8 +126,8 @@ const MenuItemModal: React.FC<{
     categories: string[];
 }> = ({ isOpen, onClose, onSave, item, categories }) => {
     const isEditing = item && 'id' in item;
-    const [formData, setFormData] = useState<Omit<MenuItem, 'id' | 'tags'> & { tags: string }>({
-        name: '', description: '', price: 0, imageUrl: '', category: categories[0] || '', tags: ''
+    const [formData, setFormData] = useState<Omit<MenuItem, 'id' | 'tags'> & { tags: string, status: 'active' | 'disabled' }>({
+        name: '', description: '', price: 0, imageUrl: '', category: categories[0] || '', tags: '', status: 'active'
     });
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const inputStyles = "mt-1 block w-full rounded-md border-border bg-background shadow-sm focus:border-brand-gold focus:ring-brand-gold sm:text-sm text-copy";
@@ -116,7 +138,7 @@ const MenuItemModal: React.FC<{
             setImagePreview(item.imageUrl);
         } else {
              setFormData({
-                name: '', description: '', price: 0, imageUrl: '', category: categories[0] || '', tags: ''
+                name: '', description: '', price: 0, imageUrl: '', category: categories[0] || '', tags: '', status: 'active'
             });
             setImagePreview(null);
         }
@@ -183,6 +205,13 @@ const MenuItemModal: React.FC<{
                                     <input type="file" accept="image/*" onChange={handleFileChange} className="mt-1 block w-full text-sm text-copy-light file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-surface-light file:text-copy hover:file:bg-border"/>
                                     {imagePreview && <img src={imagePreview} alt="Preview" className="mt-2 h-24 w-full rounded-md object-cover"/>}
                                 </div>
+                                <div className="md:col-span-2 flex items-center justify-between">
+                                    <label className="block text-sm font-medium text-copy-light">Item Status</label>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`text-sm font-semibold ${formData.status === 'active' ? 'text-brand-emerald' : 'text-copy-lighter'}`}>Active</span>
+                                        <ToggleSwitch checked={formData.status === 'active'} onChange={() => setFormData(prev => ({...prev, status: prev.status === 'active' ? 'disabled' : 'active'}))} />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -203,13 +232,42 @@ interface MenuBuilderProps {
     onAddMenuItem: (itemData: Omit<MenuItem, 'id'>) => void;
     onUpdateMenuItem: (item: MenuItem) => void;
     onDeleteMenuItem: (itemId: string) => void;
+    onUpdateMenuItemsStatus: (itemIds: string[], status: 'active' | 'disabled') => void;
+    onDeleteMenuItems: (itemIds: string[]) => void;
 }
 
-const MenuBuilder: React.FC<MenuBuilderProps> = ({ restaurant, menu, onUpdateRestaurant, onAddMenuItem, onUpdateMenuItem, onDeleteMenuItem }) => {
+const BulkActionBar: React.FC<{
+    count: number;
+    onCancel: () => void;
+    onEnable: () => void;
+    onDisable: () => void;
+    onDelete: () => void;
+}> = ({ count, onCancel, onEnable, onDisable, onDelete }) => (
+    <div className="fixed bottom-0 left-64 right-0 bg-surface shadow-lg z-20 border-t border-border transform transition-transform duration-300 ease-in-out">
+        <div className="p-4 flex justify-between items-center">
+            <div className="flex items-center gap-4">
+                <button onClick={onCancel} className="text-copy-light hover:text-copy-rich"><XCircleIcon className="w-6 h-6"/></button>
+                <p className="font-semibold text-copy-rich">{count} item{count > 1 ? 's' : ''} selected</p>
+            </div>
+            <div className="flex items-center gap-3">
+                <button onClick={onEnable} className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">Enable</button>
+                <button onClick={onDisable} className="px-4 py-2 text-sm font-medium text-white bg-yellow-600 rounded-md hover:bg-yellow-700">Disable</button>
+                <button onClick={onDelete} className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">Delete</button>
+            </div>
+        </div>
+    </div>
+);
+
+
+const MenuBuilder: React.FC<MenuBuilderProps> = ({ restaurant, menu, onUpdateRestaurant, onAddMenuItem, onUpdateMenuItem, onDeleteMenuItem, onUpdateMenuItemsStatus, onDeleteMenuItems }) => {
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
     const [isItemModalOpen, setIsItemModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
     const [itemToDelete, setItemToDelete] = useState<MenuItem | null>(null);
+    const [isSelectMode, setIsSelectMode] = useState(false);
+    const [selectedItems, setSelectedItems] = useState<string[]>([]);
+    const [actionToConfirm, setActionToConfirm] = useState<'delete' | null>(null);
+
 
     const handleSaveCategories = (newCategories: string[]) => {
         onUpdateRestaurant({ ...restaurant, categories: newCategories });
@@ -237,11 +295,41 @@ const MenuBuilder: React.FC<MenuBuilderProps> = ({ restaurant, menu, onUpdateRes
         }
     };
     
+    const toggleSelectMode = () => {
+        setIsSelectMode(!isSelectMode);
+        setSelectedItems([]);
+    };
+
+    const handleItemSelect = (itemId: string) => {
+        setSelectedItems(prev => 
+            prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]
+        );
+    };
+
+    const handleBulkEnable = () => {
+        onUpdateMenuItemsStatus(selectedItems, 'active');
+        toggleSelectMode();
+    };
+    
+    const handleBulkDisable = () => {
+        onUpdateMenuItemsStatus(selectedItems, 'disabled');
+        toggleSelectMode();
+    };
+    
+    const handleBulkDelete = () => {
+        onDeleteMenuItems(selectedItems);
+        toggleSelectMode();
+        setActionToConfirm(null);
+    };
+
     return (
-        <div>
+        <div className="pb-20">
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-copy-rich">Build Your Menu</h3>
                 <div className="flex gap-2">
+                    <button onClick={toggleSelectMode} className="px-4 py-2 text-sm font-medium text-copy-rich bg-surface border border-border rounded-md hover:bg-surface-light">
+                        {isSelectMode ? 'Cancel Selection' : 'Select Items'}
+                    </button>
                     <button onClick={() => setIsCategoryModalOpen(true)} className="px-4 py-2 text-sm font-medium text-copy-rich bg-surface border border-border rounded-md hover:bg-surface-light">Manage Categories</button>
                     <button onClick={() => handleOpenItemModal()} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-copy-rich rounded-md hover:bg-opacity-90">
                         <PlusIcon className="w-5 h-5"/>
@@ -256,7 +344,22 @@ const MenuBuilder: React.FC<MenuBuilderProps> = ({ restaurant, menu, onUpdateRes
                         <h4 className="text-lg font-bold text-copy-light mb-3 border-b border-border pb-2">{category}</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                             {menu.filter(item => item.category === category).map(item => (
-                                <div key={item.id} className="bg-surface rounded-lg shadow-md overflow-hidden border border-border">
+                                <div key={item.id} className={`relative bg-surface rounded-lg shadow-md overflow-hidden border border-border group ${item.status === 'disabled' ? 'opacity-50' : ''}`}>
+                                    {isSelectMode && (
+                                        <div className="absolute top-2 left-2 z-10">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={selectedItems.includes(item.id)}
+                                                onChange={() => handleItemSelect(item.id)}
+                                                className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary"
+                                            />
+                                        </div>
+                                    )}
+                                    {item.status === 'disabled' && (
+                                        <div className="absolute top-2 right-2 z-10 bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded-full">
+                                            Disabled
+                                        </div>
+                                    )}
                                     <img src={item.imageUrl} alt={item.name} className="h-32 w-full object-cover"/>
                                     <div className="p-4">
                                         <div className="flex justify-between items-start">
@@ -281,15 +384,28 @@ const MenuBuilder: React.FC<MenuBuilderProps> = ({ restaurant, menu, onUpdateRes
                 )}
             </div>
             
+            {selectedItems.length > 0 && (
+                <BulkActionBar 
+                    count={selectedItems.length}
+                    onCancel={toggleSelectMode}
+                    onEnable={handleBulkEnable}
+                    onDisable={handleBulkDisable}
+                    onDelete={() => setActionToConfirm('delete')}
+                />
+            )}
+            
             <CategoryModal isOpen={isCategoryModalOpen} onClose={() => setIsCategoryModalOpen(false)} onSave={handleSaveCategories} initialCategories={restaurant.categories} />
             <MenuItemModal isOpen={isItemModalOpen} onClose={() => setIsItemModalOpen(false)} onSave={handleSaveItem} item={editingItem} categories={restaurant.categories} />
             <ConfirmationModal 
-                isOpen={!!itemToDelete}
-                onClose={() => setItemToDelete(null)}
-                onConfirm={handleDeleteItemConfirm}
+                isOpen={!!itemToDelete || (actionToConfirm === 'delete' && selectedItems.length > 0)}
+                onClose={() => { setItemToDelete(null); setActionToConfirm(null); }}
+                onConfirm={itemToDelete ? handleDeleteItemConfirm : handleBulkDelete}
                 title="Confirm Deletion"
             >
-                Are you sure you want to delete "{itemToDelete?.name}"? This action cannot be undone.
+                {itemToDelete 
+                    ? `Are you sure you want to delete "${itemToDelete.name}"? This action cannot be undone.`
+                    : `Are you sure you want to delete the ${selectedItems.length} selected items? This action cannot be undone.`
+                }
             </ConfirmationModal>
         </div>
     );

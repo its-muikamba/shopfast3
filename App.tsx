@@ -1,7 +1,6 @@
 
-
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Restaurant, CartItem, Order, StaffRole, StaffMember, MenuItem, OrderContext, ServerAlert, OrderStatus, RestaurantReportData, BillingHistory, SupportTicket, TicketStatus, Tab, User, LiveOrder } from './types';
+import { View, Restaurant, CartItem, Order, StaffRole, StaffMember, MenuItem, OrderContext, ServerAlert, OrderStatus, RestaurantReportData, BillingHistory, SupportTicket, TicketStatus, Tab, User, LiveOrder, Transaction, PaymentMethod } from './types';
 import { RESTAURANTS, MENUS, STAFF_MEMBERS, INITIAL_ACTIVE_ORDERS, RESTAURANT_REPORTS, BILLING_HISTORY, SUPPORT_TICKETS } from './constants';
 import DiscoverScreen from './components/DiscoverScreen';
 import MenuScreen from './components/MenuScreen';
@@ -21,6 +20,11 @@ import ProfileScreen from './components/ProfileScreen';
 const LIVE_ORDERS_STORAGE_KEY = 'shopfast_liveOrders';
 const SERVER_ALERTS_STORAGE_KEY = 'shopfast_serverAlerts';
 const CURRENT_USER_STORAGE_KEY = 'shopfast_currentUser';
+const TRANSACTIONS_STORAGE_KEY = 'shopfast_transactions';
+const RESTAURANTS_STORAGE_KEY = 'shopfast_restaurants';
+const MENUS_STORAGE_KEY = 'shopfast_menus';
+const STAFF_STORAGE_KEY = 'shopfast_staff';
+
 
 // Helper to safely parse JSON from localStorage
 const getFromStorage = <T,>(key: string, fallback: T): T => {
@@ -46,8 +50,8 @@ const getAppModeFromHash = (): AppMode => {
 
 const App: React.FC = () => {
   // Global State
-  const [restaurants, setRestaurants] = useState<Restaurant[]>(RESTAURANTS);
-  const [menus, setMenus] = useState<Record<string, MenuItem[]>>(MENUS);
+  const [restaurants, setRestaurants] = useState<Restaurant[]>(() => getFromStorage(RESTAURANTS_STORAGE_KEY, RESTAURANTS));
+  const [menus, setMenus] = useState<Record<string, MenuItem[]>>(() => getFromStorage(MENUS_STORAGE_KEY, MENUS));
   const [appMode, setAppMode] = useState<AppMode>(getAppModeFromHash());
   const [restaurantReports, setRestaurantReports] = useState<Record<string, RestaurantReportData>>(RESTAURANT_REPORTS);
   const [billingHistory, setBillingHistory] = useState<BillingHistory[]>(BILLING_HISTORY);
@@ -80,7 +84,7 @@ const App: React.FC = () => {
 
   // HQ App State
   const [isHqLoggedIn, setIsHqLoggedIn] = useState(false);
-  const [staff, setStaff] = useState<StaffMember[]>(STAFF_MEMBERS);
+  const [staff, setStaff] = useState<StaffMember[]>(() => getFromStorage(STAFF_STORAGE_KEY, STAFF_MEMBERS));
 
   // Restaurant App State
   const [loggedInRestaurant, setLoggedInRestaurant] = useState<Restaurant | null>(null);
@@ -89,6 +93,8 @@ const App: React.FC = () => {
   // REAL-TIME STATE (with cross-tab sync)
   const [liveOrders, setLiveOrders] = useState<LiveOrder[]>(() => getFromStorage(LIVE_ORDERS_STORAGE_KEY, INITIAL_ACTIVE_ORDERS));
   const [serverAlerts, setServerAlerts] = useState<ServerAlert[]>(() => getFromStorage(SERVER_ALERTS_STORAGE_KEY, []));
+  const [transactions, setTransactions] = useState<Transaction[]>(() => getFromStorage(TRANSACTIONS_STORAGE_KEY, []));
+
 
   // Cross-tab synchronization effect
   useEffect(() => {
@@ -101,6 +107,18 @@ const App: React.FC = () => {
       }
       if (e.key === CURRENT_USER_STORAGE_KEY && e.newValue) {
         setCurrentUser(JSON.parse(e.newValue));
+      }
+      if (e.key === TRANSACTIONS_STORAGE_KEY && e.newValue) {
+        setTransactions(JSON.parse(e.newValue));
+      }
+      if (e.key === RESTAURANTS_STORAGE_KEY && e.newValue) {
+          setRestaurants(JSON.parse(e.newValue));
+      }
+      if (e.key === STAFF_STORAGE_KEY && e.newValue) {
+          setStaff(JSON.parse(e.newValue));
+      }
+      if (e.key === MENUS_STORAGE_KEY && e.newValue) {
+          setMenus(JSON.parse(e.newValue));
       }
     };
 
@@ -137,6 +155,42 @@ const App: React.FC = () => {
         localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
     }
     window.dispatchEvent(new StorageEvent('storage', { key: CURRENT_USER_STORAGE_KEY, newValue: JSON.stringify(user) }));
+  }, []);
+
+   const updateTransactions = useCallback((updater: React.SetStateAction<Transaction[]>) => {
+    setTransactions(prev => {
+      const newTransactions = typeof updater === 'function' ? updater(prev) : updater;
+      localStorage.setItem(TRANSACTIONS_STORAGE_KEY, JSON.stringify(newTransactions));
+      window.dispatchEvent(new StorageEvent('storage', { key: TRANSACTIONS_STORAGE_KEY, newValue: JSON.stringify(newTransactions) }));
+      return newTransactions;
+    });
+  }, []);
+
+  const updateRestaurants = useCallback((updater: React.SetStateAction<Restaurant[]>) => {
+    setRestaurants(prev => {
+        const newItems = typeof updater === 'function' ? updater(prev) : updater;
+        localStorage.setItem(RESTAURANTS_STORAGE_KEY, JSON.stringify(newItems));
+        window.dispatchEvent(new StorageEvent('storage', { key: RESTAURANTS_STORAGE_KEY, newValue: JSON.stringify(newItems) }));
+        return newItems;
+    });
+  }, []);
+
+  const updateStaff = useCallback((updater: React.SetStateAction<StaffMember[]>) => {
+      setStaff(prev => {
+          const newItems = typeof updater === 'function' ? updater(prev) : updater;
+          localStorage.setItem(STAFF_STORAGE_KEY, JSON.stringify(newItems));
+          window.dispatchEvent(new StorageEvent('storage', { key: STAFF_STORAGE_KEY, newValue: JSON.stringify(newItems) }));
+          return newItems;
+      });
+  }, []);
+
+  const updateMenus = useCallback((updater: React.SetStateAction<Record<string, MenuItem[]>>) => {
+      setMenus(prev => {
+          const newItems = typeof updater === 'function' ? updater(prev) : updater;
+          localStorage.setItem(MENUS_STORAGE_KEY, JSON.stringify(newItems));
+          window.dispatchEvent(new StorageEvent('storage', { key: MENUS_STORAGE_KEY, newValue: JSON.stringify(newItems) }));
+          return newItems;
+      });
   }, []);
 
 
@@ -195,6 +249,7 @@ const App: React.FC = () => {
       items: cart,
       total,
       status: 'Pending',
+      paymentStatus: 'unpaid',
       userId: currentUser?.id,
       ...orderContext,
     };
@@ -210,13 +265,14 @@ const App: React.FC = () => {
         items: newOrder.items,
         total: newOrder.total,
         status: newOrder.status,
+        paymentStatus: 'unpaid',
         userId: newOrder.userId,
         ...orderContext,
     };
     updateLiveOrders(prev => [newLiveOrder, ...prev]);
 
     if (newOrder.orderType === 'dine-in' && newOrder.tableNumber) {
-      setRestaurants(prev => prev.map(r => {
+      updateRestaurants(prev => prev.map(r => {
         if (r.id === selectedRestaurant.id) {
           const updatedTables = r.tables.map(t =>
             t.number === newOrder.tableNumber
@@ -230,12 +286,26 @@ const App: React.FC = () => {
     }
   };
   
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = (method: PaymentMethod) => {
       if (!order) return;
-      const finalStatus: OrderStatus = order.orderType === 'delivery' ? 'Delivered' : 'Verified';
-      const updatedOrder = {...order, status: 'Paid' as OrderStatus};
+
+      // Update local diner state, only affecting payment status
+      const updatedOrder = {...order, paymentStatus: 'paid' as const, paymentMethod: method};
       setOrder(updatedOrder);
-      updateLiveOrders(prev => prev.map(o => o.id === order.id ? {...o, status: finalStatus} : o));
+
+      // Update live order for restaurant dashboard
+      updateLiveOrders(prev => prev.map(o => o.id === order.id ? {...o, paymentStatus: 'paid', paymentMethod: method} : o));
+
+      // Create a transaction record
+      const newTransaction: Transaction = {
+          id: `txn-${Date.now()}`,
+          orderId: order.id,
+          restaurantId: order.restaurant.id,
+          amount: order.total,
+          paymentMethod: method,
+          timestamp: Date.now(),
+      };
+      updateTransactions(prev => [...prev, newTransaction]);
   };
   
   const resetApp = () => {
@@ -302,48 +372,65 @@ const App: React.FC = () => {
     };
     
     const newAdmin: StaffMember = { ...adminData, id: `s${Date.now()}`, restaurantId: newRestaurantId, role: StaffRole.ADMIN, status: 'active' };
-    setRestaurants(prev => [newRestaurant, ...prev]);
-    setStaff(prev => [...prev, newAdmin]);
-    setMenus(prev => ({ ...prev, [newRestaurantId]: [] }));
+    updateRestaurants(prev => [newRestaurant, ...prev]);
+    updateStaff(prev => [...prev, newAdmin]);
+    updateMenus(prev => ({ ...prev, [newRestaurantId]: [] }));
   };
   const handleUpdateRestaurant = (updatedRestaurant: Restaurant) => {
-    setRestaurants(prev => prev.map(r => r.id === updatedRestaurant.id ? updatedRestaurant : r));
+    updateRestaurants(prev => prev.map(r => r.id === updatedRestaurant.id ? updatedRestaurant : r));
     if (loggedInRestaurant && loggedInRestaurant.id === updatedRestaurant.id) {
         setLoggedInRestaurant(updatedRestaurant);
     }
   };
    const handleAddStaffMember = (staffData: Omit<StaffMember, 'id' | 'status'>) => {
     const newStaffMember: StaffMember = { ...staffData, id: `s${Date.now()}`, status: 'active' };
-    setStaff(prev => [...prev, newStaffMember]);
+    updateStaff(prev => [...prev, newStaffMember]);
   };
   const handleDeleteRestaurant = (restaurantId: string) => {
-    setRestaurants(prev => prev.filter(r => r.id !== restaurantId));
-    setStaff(prev => prev.filter(s => s.restaurantId !== restaurantId));
-    setMenus(prev => {
+    updateRestaurants(prev => prev.filter(r => r.id !== restaurantId));
+    updateStaff(prev => prev.filter(s => s.restaurantId !== restaurantId));
+    updateMenus(prev => {
       const newMenus = {...prev};
       delete newMenus[restaurantId];
       return newMenus;
     });
   };
   const handleUpdateStaffMember = (updatedStaff: StaffMember) => {
-    setStaff(prev => prev.map(s => s.id === updatedStaff.id ? updatedStaff : s));
+    updateStaff(prev => prev.map(s => s.id === updatedStaff.id ? updatedStaff : s));
   };
   const handleDeleteStaffMember = (staffId: string) => {
-    setStaff(prev => prev.filter(s => s.id !== staffId));
+    updateStaff(prev => prev.filter(s => s.id !== staffId));
   };
   const handleAddMenuItem = (restaurantId: string, newItemData: Omit<MenuItem, 'id'>) => {
-    const newItem: MenuItem = { ...newItemData, id: `m-${restaurantId}-${Date.now()}` };
-    setMenus(prevMenus => ({ ...prevMenus, [restaurantId]: [...(prevMenus[restaurantId] || []), newItem] }));
+    const newItem: MenuItem = { ...newItemData, status: 'active', id: `m-${restaurantId}-${Date.now()}` };
+    updateMenus(prevMenus => ({ ...prevMenus, [restaurantId]: [...(prevMenus[restaurantId] || []), newItem] }));
   };
   const handleUpdateMenuItem = (restaurantId: string, updatedItem: MenuItem) => {
-    setMenus(prevMenus => ({ ...prevMenus, [restaurantId]: prevMenus[restaurantId].map(item => item.id === updatedItem.id ? updatedItem : item) }));
+    updateMenus(prevMenus => ({ ...prevMenus, [restaurantId]: prevMenus[restaurantId].map(item => item.id === updatedItem.id ? updatedItem : item) }));
   };
   const handleDeleteMenuItem = (restaurantId: string, itemId: string) => {
-    setMenus(prevMenus => ({ ...prevMenus, [restaurantId]: prevMenus[restaurantId].filter(item => item.id !== itemId) }));
+    updateMenus(prevMenus => ({ ...prevMenus, [restaurantId]: prevMenus[restaurantId].filter(item => item.id !== itemId) }));
   };
   const handleUpdateTicketStatus = (ticketId: string, newStatus: TicketStatus) => {
     setSupportTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: newStatus } : t));
   };
+  const handleUpdateMenuItemsStatus = (restaurantId: string, itemIds: string[], status: 'active' | 'disabled') => {
+      updateMenus(prevMenus => {
+          const newMenus = { ...prevMenus };
+          newMenus[restaurantId] = newMenus[restaurantId].map(item => 
+              itemIds.includes(item.id) ? { ...item, status } : item
+          );
+          return newMenus;
+      });
+  };
+  const handleDeleteMenuItems = (restaurantId: string, itemIds: string[]) => {
+      updateMenus(prevMenus => {
+          const newMenus = { ...prevMenus };
+          newMenus[restaurantId] = newMenus[restaurantId].filter(item => !itemIds.includes(item.id));
+          return newMenus;
+      });
+  };
+
   
   // Restaurant App Logic (remains unchanged)
   const handleRestaurantLogin = (restaurantId: string, name: string, pin: string) => {
@@ -400,7 +487,7 @@ const App: React.FC = () => {
                 <OrderPage 
                     order={order}
                     setOrder={setOrder}
-                    onPaymentSuccess={handlePaymentSuccess}
+                    onPaymentSuccess={() => handlePaymentSuccess(order?.paymentMethod || 'stripe')}
                     resetApp={resetApp}
                     liveOrders={liveOrders}
                 />
@@ -419,6 +506,7 @@ const App: React.FC = () => {
         if (!isHqLoggedIn) return <HQLoginScreen onLogin={handleHqLogin} />;
         return <HQDashboard 
                   restaurants={restaurants} staff={staff} billingHistory={billingHistory} supportTickets={supportTickets}
+                  liveOrders={liveOrders} transactions={transactions}
                   onUpdateTicketStatus={handleUpdateTicketStatus} onLogout={handleHqLogout} onAddRestaurant={handleAddRestaurant} 
                   onUpdateRestaurant={handleUpdateRestaurant} onDeleteRestaurant={handleDeleteRestaurant} onAddStaffMember={handleAddStaffMember}
                />;
@@ -426,13 +514,15 @@ const App: React.FC = () => {
         if (!loggedInRestaurant || !loggedInRole) return <RestaurantLoginScreen restaurants={restaurants} onLogin={handleRestaurantLogin} />;
         return <RestaurantDashboard 
                   restaurant={loggedInRestaurant} role={loggedInRole} staff={staff} menu={menus[loggedInRestaurant.id] || []}
-                  liveOrders={liveOrders} onUpdateLiveOrders={updateLiveOrders} onAcceptOrder={handleAcceptOrder}
+                  liveOrders={liveOrders} transactions={transactions} onUpdateLiveOrders={updateLiveOrders} onAcceptOrder={handleAcceptOrder}
                   onUpdateOrderStatus={handleUpdateOrderStatus} serverAlerts={serverAlerts.filter(a => a.restaurantId === loggedInRestaurant.id)}
                   onResolveAlert={handleResolveAlert} onAddStaffMember={handleAddStaffMember} onUpdateStaffMember={handleUpdateStaffMember}
                   onDeleteStaffMember={handleDeleteStaffMember} onUpdateRestaurant={handleUpdateRestaurant}
                   onAddMenuItem={(item) => handleAddMenuItem(loggedInRestaurant.id, item)}
                   onUpdateMenuItem={(item) => handleUpdateMenuItem(loggedInRestaurant.id, item)}
                   onDeleteMenuItem={(itemId) => handleDeleteMenuItem(loggedInRestaurant.id, itemId)}
+                  onUpdateMenuItemsStatus={(itemIds, status) => handleUpdateMenuItemsStatus(loggedInRestaurant.id, itemIds, status)}
+                  onDeleteMenuItems={(itemIds) => handleDeleteMenuItems(loggedInRestaurant.id, itemIds)}
                   reportData={restaurantReports[loggedInRestaurant.id]} onLogout={handleRestaurantLogout} 
                   onResetTable={handleResetTable}
                />;

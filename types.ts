@@ -122,6 +122,7 @@ export interface MenuItem {
   imageUrl: string;
   category: MenuItemCategory;
   tags: MenuItemTag[];
+  status: 'active' | 'disabled';
 }
 
 export interface CartItem extends MenuItem {
@@ -139,6 +140,9 @@ export interface OrderContext {
   deliveryAddress?: string;
 }
 
+export type PaymentMethod = 'stripe' | 'mpesa' | 'pesapal';
+export type PaymentStatus = 'unpaid' | 'paid';
+
 export interface Order extends OrderContext {
     id: string;
     restaurant: Restaurant;
@@ -148,6 +152,8 @@ export interface Order extends OrderContext {
     preparationTime?: number; // in minutes
     acceptedAt?: number; // timestamp
     userId?: string;
+    paymentMethod?: PaymentMethod;
+    paymentStatus?: PaymentStatus;
 }
 
 export interface LiveOrder extends OrderContext {
@@ -159,6 +165,17 @@ export interface LiveOrder extends OrderContext {
     preparationTime?: number;
     acceptedAt?: number;
     userId?: string;
+    paymentMethod?: PaymentMethod;
+    paymentStatus?: PaymentStatus;
+}
+
+export interface Transaction {
+    id: string;
+    orderId: string;
+    restaurantId: string;
+    amount: number;
+    paymentMethod: PaymentMethod;
+    timestamp: number;
 }
 
 export interface ServerAlert {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { CheckCircleIcon, ShoppingCartIcon, CreditCardIcon, StarIcon } from '../Icons';
+import { LiveOrder, Transaction, Restaurant } from '../../types';
 
 const MetricCard: React.FC<{ title: string; value: string | number; icon: React.ElementType, color: string }> = ({ title, value, icon: Icon, color }) => (
     <div className="bg-surface p-6 rounded-lg shadow-md border border-border">
@@ -9,39 +10,60 @@ const MetricCard: React.FC<{ title: string; value: string | number; icon: React.
             </div>
             <div className="ml-4">
                 <p className="text-sm text-copy-light">{title}</p>
-
                 <p className="text-2xl font-bold text-copy-rich">{value}</p>
             </div>
         </div>
     </div>
 );
 
+interface RestaurantAdminOverviewProps {
+    restaurant: Restaurant;
+    liveOrders: LiveOrder[];
+    transactions: Transaction[];
+}
 
-const RestaurantAdminOverview: React.FC = () => {
+const RestaurantAdminOverview: React.FC<RestaurantAdminOverviewProps> = ({ restaurant, liveOrders, transactions }) => {
+
+    const isToday = (timestamp: number) => {
+        const date = new Date(timestamp);
+        const today = new Date();
+        return date.getDate() === today.getDate() &&
+               date.getMonth() === today.getMonth() &&
+               date.getFullYear() === today.getFullYear();
+    };
+
+    const todaysOrders = liveOrders.filter(o => o.acceptedAt && isToday(o.acceptedAt)).length;
+    
+    const todaysRevenue = transactions
+        .filter(t => isToday(t.timestamp))
+        .reduce((sum, t) => sum + t.amount, 0);
+
+    const activeTables = liveOrders.filter(o => o.orderType === 'dine-in' && o.status !== 'Served' && o.paymentStatus !== 'paid').length;
+
   return (
     <div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
              <MetricCard 
                 title="Today's Orders" 
-                value={124}
+                value={todaysOrders}
                 icon={ShoppingCartIcon}
                 color="bg-blue-500"
             />
             <MetricCard 
                 title="Today's Revenue" 
-                value={"$3,120.50"}
+                value={`$${todaysRevenue.toFixed(2)}`}
                 icon={CreditCardIcon}
                 color="bg-brand-emerald"
             />
             <MetricCard 
                 title="Active Tables" 
-                value={14}
+                value={activeTables}
                 icon={CheckCircleIcon}
                 color="bg-green-500"
             />
             <MetricCard 
                 title="Average Rating" 
-                value={"4.8"}
+                value={restaurant.rating}
                 icon={StarIcon}
                 color="bg-yellow-500"
             />
