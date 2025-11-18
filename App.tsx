@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Restaurant, CartItem, Order, StaffRole, StaffMember, MenuItem, OrderContext, ServerAlert, OrderStatus, RestaurantReportData, BillingHistory, SupportTicket, TicketStatus, Tab, User, LiveOrder, Transaction, PaymentMethod, Review } from './types';
 import { RESTAURANTS, MENUS, STAFF_MEMBERS, INITIAL_ACTIVE_ORDERS, RESTAURANT_REPORTS, BILLING_HISTORY, SUPPORT_TICKETS } from './constants';
@@ -52,10 +53,11 @@ const App: React.FC = () => {
   // Global State
   const [restaurants, setRestaurants] = useState<Restaurant[]>(() => {
     const stored = getFromStorage<Restaurant[]>(RESTAURANTS_STORAGE_KEY, RESTAURANTS);
-    // Simple data migration for restaurants that might not have a currency field from older localStorage saves.
+    // Data migration for older localStorage data
     return stored.map(r => ({
       ...r,
-      currency: r.currency || { code: 'KES', symbol: 'Ksh' },
+      currency: r.currency || { code: 'KES', symbol: 'Ksh' }, // Ensures currency exists
+      reviews: r.reviews || [], // Ensures reviews array exists
     }));
   });
   const [menus, setMenus] = useState<Record<string, MenuItem[]>>(() => getFromStorage(MENUS_STORAGE_KEY, MENUS));

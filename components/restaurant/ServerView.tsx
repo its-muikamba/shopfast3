@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Order, OrderStatus, Table, ServerAlert, Restaurant } from '../../types';
-import { ArmchairIcon, CheckCircleIcon, ShoppingCartIcon } from '../Icons';
+import { ArmchairIcon, CheckCircleIcon, RefreshCwIcon, ShoppingCartIcon } from '../Icons';
 
 const statusColors: Record<OrderStatus, { bg: string, text: string, border: string }> = {
     'Pending': { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-500' },
@@ -124,14 +124,14 @@ const TableRepresentation: React.FC<{
                            <p><strong>Payment:</strong> <span className="font-semibold capitalize text-emerald-600">Paid via {order.paymentMethod}</span></p>
                         )}
                          {elapsedTime && <p><strong>Time:</strong> <span className="font-mono">{elapsedTime}</span></p>}
-                        {order.status === 'On Route' && (
-                             <button onClick={() => onUpdateOrderStatus(order.id, 'Served')} className="w-full text-xs mt-1 bg-brand-emerald text-white font-semibold py-1 px-2 rounded-md hover:bg-opacity-80 transition flex items-center justify-center gap-1">
+                        
+                        {order.status === 'On Route' ? (
+                            <button onClick={() => onUpdateOrderStatus(order.id, 'Served')} className="w-full text-xs mt-1 bg-brand-emerald text-white font-semibold py-1 px-2 rounded-md hover:bg-opacity-80 transition flex items-center justify-center gap-1">
                                 <CheckCircleIcon className="w-3 h-3" /> Mark as Served
                             </button>
-                        )}
-                         {order.status === 'Served' && (
-                             <button onClick={() => onResetTable(order.id)} className="w-full text-xs mt-1 bg-copy-light text-white font-semibold py-1 px-2 rounded-md hover:bg-opacity-80 transition">
-                                Clear & Reset Table
+                        ) : (order.status === 'Served' || order.paymentStatus === 'paid') && (
+                            <button onClick={() => onResetTable(order.id)} className="w-full text-xs mt-1 bg-copy-light text-white font-semibold py-1 px-2 rounded-md hover:bg-opacity-80 transition flex items-center justify-center gap-1">
+                                <RefreshCwIcon className="w-3 h-3"/> Clear & Reset Table
                             </button>
                         )}
                      </div>
