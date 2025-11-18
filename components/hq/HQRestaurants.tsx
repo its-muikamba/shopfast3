@@ -1,18 +1,10 @@
 
 
+
 import React, { useState, useEffect } from 'react';
 import { Restaurant, StaffMember, StaffRole } from '../../types';
 import { PlusIcon, EditIcon, Trash2Icon } from '../Icons';
 import { defaultPaymentSettings } from '../../constants';
-
-const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = error => reject(error);
-    });
-};
 
 const ToggleSwitch: React.FC<{ checked: boolean; onChange: () => void }> = ({ checked, onChange }) => {
   return (
@@ -59,9 +51,7 @@ const CreateRestaurantModal: React.FC<{
 
     const [restaurantData, setRestaurantData] = useState(initialRestaurantState);
     const [adminData, setAdminData] = useState(initialAdminState);
-    const [logoPreview, setLogoPreview] = useState<string | null>(null);
-    const [bannerPreview, setBannerPreview] = useState<string | null>(null);
-
+    
     const handleRestaurantChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setRestaurantData(prev => ({ ...prev, [name]: value }));
@@ -71,26 +61,10 @@ const CreateRestaurantModal: React.FC<{
         const { name, value } = e.target;
         setAdminData(prev => ({ ...prev, [name]: value }));
     };
-
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'banner') => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            const base64 = await fileToBase64(file);
-            if (type === 'logo') {
-                setRestaurantData(prev => ({ ...prev, logoUrl: base64 }));
-                setLogoPreview(base64);
-            } else {
-                setRestaurantData(prev => ({ ...prev, imageUrl: base64 }));
-                setBannerPreview(base64);
-            }
-        }
-    };
     
     const resetForm = () => {
         setRestaurantData(initialRestaurantState);
         setAdminData(initialAdminState);
-        setLogoPreview(null);
-        setBannerPreview(null);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -129,14 +103,12 @@ const CreateRestaurantModal: React.FC<{
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Upload Logo</label>
-                                        <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'logo')} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-brand-charcoal hover:file:bg-gray-200" required/>
-                                        {logoPreview && <img src={logoPreview} alt="Logo Preview" className="mt-2 h-16 w-16 rounded-full object-cover"/>}
+                                        <label className="block text-sm font-medium text-gray-700">Logo URL</label>
+                                        <input type="url" name="logoUrl" value={restaurantData.logoUrl} onChange={handleRestaurantChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold sm:text-sm" placeholder="https://example.com/logo.png" required />
                                     </div>
                                     <div className="md:col-span-2">
-                                        <label className="block text-sm font-medium text-gray-700">Upload Banner Image</label>
-                                        <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'banner')} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-brand-charcoal hover:file:bg-gray-200" required/>
-                                        {bannerPreview && <img src={bannerPreview} alt="Banner Preview" className="mt-2 h-24 w-full rounded-md object-cover"/>}
+                                        <label className="block text-sm font-medium text-gray-700">Banner Image URL</label>
+                                        <input type="url" name="imageUrl" value={restaurantData.imageUrl} onChange={handleRestaurantChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold sm:text-sm" placeholder="https://example.com/banner.jpg" required />
                                     </div>
                                 </div>
                             </fieldset>
@@ -172,14 +144,10 @@ const EditRestaurantModal: React.FC<{
     restaurant: Restaurant | null;
 }> = ({ isOpen, onClose, onSave, restaurant }) => {
     const [formData, setFormData] = useState<Restaurant | null>(null);
-    const [logoPreview, setLogoPreview] = useState<string | null>(null);
-    const [bannerPreview, setBannerPreview] = useState<string | null>(null);
-
+    
     useEffect(() => {
         if (restaurant) {
             setFormData(restaurant);
-            setLogoPreview(restaurant.logoUrl);
-            setBannerPreview(restaurant.imageUrl);
         }
     }, [restaurant]);
 
@@ -187,20 +155,6 @@ const EditRestaurantModal: React.FC<{
         if (!formData) return;
         const { name, value } = e.target;
         setFormData(prev => prev ? ({ ...prev, [name]: value }) : null);
-    };
-
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'banner') => {
-        if (e.target.files && e.target.files[0] && formData) {
-            const file = e.target.files[0];
-            const base64 = await fileToBase64(file);
-            if (type === 'logo') {
-                setFormData(prev => prev ? ({ ...prev, logoUrl: base64 }) : null);
-                setLogoPreview(base64);
-            } else {
-                setFormData(prev => prev ? ({ ...prev, imageUrl: base64 }) : null);
-                setBannerPreview(base64);
-            }
-        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -228,14 +182,12 @@ const EditRestaurantModal: React.FC<{
                                 <input type="text" name="cuisine" value={formData.cuisine} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold sm:text-sm" required />
                             </div>
                              <div>
-                                <label className="block text-sm font-medium text-gray-700">Upload Logo</label>
-                                <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'logo')} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-brand-charcoal hover:file:bg-gray-200"/>
-                                {logoPreview && <img src={logoPreview} alt="Logo Preview" className="mt-2 h-16 w-16 rounded-full object-cover"/>}
+                                <label className="block text-sm font-medium text-gray-700">Logo URL</label>
+                                <input type="url" name="logoUrl" value={formData.logoUrl} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold sm:text-sm" placeholder="https://example.com/logo.png" required />
                             </div>
                              <div>
-                                <label className="block text-sm font-medium text-gray-700">Upload Banner Image</label>
-                                <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'banner')} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-brand-charcoal hover:file:bg-gray-200"/>
-                                {bannerPreview && <img src={bannerPreview} alt="Banner Preview" className="mt-2 h-24 w-full rounded-md object-cover"/>}
+                                <label className="block text-sm font-medium text-gray-700">Banner Image URL</label>
+                                <input type="url" name="imageUrl" value={formData.imageUrl} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold sm:text-sm" placeholder="https://example.com/banner.jpg" required />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Subscription Tier</label>

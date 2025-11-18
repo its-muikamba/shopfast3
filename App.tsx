@@ -50,7 +50,14 @@ const getAppModeFromHash = (): AppMode => {
 
 const App: React.FC = () => {
   // Global State
-  const [restaurants, setRestaurants] = useState<Restaurant[]>(() => getFromStorage(RESTAURANTS_STORAGE_KEY, RESTAURANTS));
+  const [restaurants, setRestaurants] = useState<Restaurant[]>(() => {
+    const stored = getFromStorage<Restaurant[]>(RESTAURANTS_STORAGE_KEY, RESTAURANTS);
+    // Simple data migration for restaurants that might not have a currency field from older localStorage saves.
+    return stored.map(r => ({
+      ...r,
+      currency: r.currency || { code: 'KES', symbol: 'Ksh' },
+    }));
+  });
   const [menus, setMenus] = useState<Record<string, MenuItem[]>>(() => getFromStorage(MENUS_STORAGE_KEY, MENUS));
   const [appMode, setAppMode] = useState<AppMode>(getAppModeFromHash());
   const [restaurantReports, setRestaurantReports] = useState<Record<string, RestaurantReportData>>(RESTAURANT_REPORTS);
@@ -556,7 +563,7 @@ const App: React.FC = () => {
                   onDeleteMenuItem={(itemId) => handleDeleteMenuItem(loggedInRestaurant.id, itemId)}
                   onUpdateMenuItemsStatus={(itemIds, status) => handleUpdateMenuItemsStatus(loggedInRestaurant.id, itemIds, status)}
                   onDeleteMenuItems={(itemIds) => handleDeleteMenuItems(loggedInRestaurant.id, itemIds)}
-                  reportData={restaurantReports[loggedInRestaurant.id]} onLogout={handleRestaurantLogout} 
+                  reportData={restaurantReports[loggedInRestaurant.id]} onLogout={handleLogout} 
                   onResetTable={handleResetTable}
                />;
       case 'diner':

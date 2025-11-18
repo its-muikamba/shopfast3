@@ -3,15 +3,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Restaurant, MenuItem, MenuItemTag } from '../../types';
 import { PlusIcon, EditIcon, Trash2Icon, XCircleIcon } from '../Icons';
 
-const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = error => reject(error);
-    });
-};
-
 const ToggleSwitch: React.FC<{ checked: boolean; onChange: () => void }> = ({ checked, onChange }) => {
   return (
     <button
@@ -129,18 +120,15 @@ const MenuItemModal: React.FC<{
     const [formData, setFormData] = useState<Omit<MenuItem, 'id' | 'tags'> & { tags: string, status: 'active' | 'disabled' }>({
         name: '', description: '', price: 0, imageUrl: '', category: categories[0] || '', tags: '', status: 'active'
     });
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
     const inputStyles = "mt-1 block w-full rounded-md border-border bg-background shadow-sm focus:border-brand-gold focus:ring-brand-gold sm:text-sm text-copy";
 
     useEffect(() => {
         if (item) {
             setFormData({ ...item, tags: item.tags.join(', ') });
-            setImagePreview(item.imageUrl);
         } else {
              setFormData({
                 name: '', description: '', price: 0, imageUrl: '', category: categories[0] || '', tags: '', status: 'active'
             });
-            setImagePreview(null);
         }
     }, [item, categories]);
 
@@ -149,14 +137,6 @@ const MenuItemModal: React.FC<{
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: name === 'price' ? parseFloat(value) : value }));
-    };
-
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const base64 = await fileToBase64(e.target.files[0]);
-            setFormData(prev => ({ ...prev, imageUrl: base64 }));
-            setImagePreview(base64);
-        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -201,9 +181,9 @@ const MenuItemModal: React.FC<{
                                     <input type="text" name="tags" value={formData.tags} onChange={handleChange} className={inputStyles} placeholder="e.g. vegetarian, spicy" />
                                 </div>
                                 <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-copy-light">Item Image</label>
-                                    <input type="file" accept="image/*" onChange={handleFileChange} className="mt-1 block w-full text-sm text-copy-light file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-surface-light file:text-copy hover:file:bg-border"/>
-                                    {imagePreview && <img src={imagePreview} alt="Preview" className="mt-2 h-24 w-full rounded-md object-cover"/>}
+                                    <label className="block text-sm font-medium text-copy-light">Item Image URL</label>
+                                    <input type="url" name="imageUrl" value={formData.imageUrl} onChange={handleChange} className={inputStyles} placeholder="https://example.com/item.jpg" />
+                                    {formData.imageUrl && <img src={formData.imageUrl} alt="Preview" className="mt-2 h-24 w-full rounded-md object-cover"/>}
                                 </div>
                                 <div className="md:col-span-2 flex items-center justify-between">
                                     <label className="block text-sm font-medium text-copy-light">Item Status</label>
