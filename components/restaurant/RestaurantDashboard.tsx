@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Restaurant, StaffRole, RestaurantView, StaffMember, MenuItem, Order, ServerAlert, OrderStatus, RestaurantReportData } from '../../types';
+import { Restaurant, StaffRole, RestaurantView, StaffMember, MenuItem, Order, ServerAlert, OrderStatus, RestaurantReportData, LiveOrder } from '../../types';
 import { 
     LayoutDashboardIcon, ClipboardListIcon, UtensilsCrossedIcon, CreditCardIcon, 
     FileTextIcon, UsersIcon, SettingsIcon, LogOutIcon, ArmchairIcon, TruckIcon,
@@ -44,10 +44,11 @@ interface RestaurantDashboardProps {
   role: StaffRole;
   staff: StaffMember[];
   menu: MenuItem[];
-  liveOrders: Omit<Order, 'restaurant'>[];
-  onUpdateLiveOrders: React.Dispatch<React.SetStateAction<Omit<Order, 'restaurant'>[]>>;
+  liveOrders: LiveOrder[];
+  onUpdateLiveOrders: (updater: React.SetStateAction<LiveOrder[]>) => void;
   onAcceptOrder: (orderId: string, prepTime: number) => void;
   onUpdateOrderStatus: (orderId: string, newStatus: OrderStatus) => void;
+  onResetTable: (orderId: string) => void;
   serverAlerts: ServerAlert[];
   onResolveAlert: (alertId: string) => void;
   onAddStaffMember: (staffData: Omit<StaffMember, 'id' | 'status'>) => void;
@@ -70,6 +71,7 @@ const RestaurantDashboard: React.FC<RestaurantDashboardProps> = ({
     onUpdateLiveOrders,
     onAcceptOrder,
     onUpdateOrderStatus,
+    onResetTable,
     serverAlerts,
     onResolveAlert,
     onAddStaffMember, 
@@ -142,11 +144,12 @@ const RestaurantDashboard: React.FC<RestaurantDashboardProps> = ({
                             serverAlerts={serverAlerts} 
                             onResolveAlert={onResolveAlert}
                             onUpdateOrderStatus={onUpdateOrderStatus}
+                            onResetTable={onResetTable}
                         />;
             case RestaurantView.KITCHEN:
                  return <KitchenView 
                             orders={liveOrders} 
-                            onUpdateOrders={onUpdateLiveOrders} 
+                            onUpdateOrderStatus={onUpdateOrderStatus}
                             onAcceptOrder={onAcceptOrder} 
                         />;
             case RestaurantView.DELIVERIES:

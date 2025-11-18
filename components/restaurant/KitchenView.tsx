@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Order, OrderStatus } from '../../types';
+import { LiveOrder, OrderStatus } from '../../types';
 import { XIcon } from '../Icons';
 
 const AcceptOrderModal: React.FC<{
@@ -49,13 +49,22 @@ const Timer: React.FC<{ acceptedAt: number; preparationTime: number }> = ({ acce
     );
 };
 
+const statusBorderColor: Partial<Record<OrderStatus, string>> = {
+    'Pending': 'border-l-orange-500',
+    'Received': 'border-l-blue-500',
+    'Preparing': 'border-l-yellow-500',
+    'On Route': 'border-l-green-500',
+    'Out for Delivery': 'border-l-green-500',
+};
 
-const OrderTicket: React.FC<{ order: Omit<Order, 'restaurant'>, onAcceptClick?: () => void }> = ({ order, onAcceptClick }) => {
+
+const OrderTicket: React.FC<{ order: LiveOrder, onAcceptClick?: () => void }> = ({ order, onAcceptClick }) => {
     const isDineIn = order.orderType === 'dine-in' && order.tableNumber;
     const headerText = isDineIn ? `Table ${order.tableNumber}` : order.orderType.charAt(0).toUpperCase() + order.orderType.slice(1);
+    const borderColor = statusBorderColor[order.status] || 'border-l-gray-400';
 
     return (
-        <div className="bg-surface-raised p-3 rounded-lg shadow-md border border-border">
+        <div className={`bg-surface-raised p-3 rounded-lg shadow-md border border-border border-l-4 ${borderColor}`}>
             <div className="flex justify-between items-center mb-2">
                 <h4 className="font-bold text-copy-rich">{headerText}</h4>
                 <span className="text-xs text-copy-lighter font-mono">ORD-{order.id.slice(-6)}</span>
@@ -118,21 +127,21 @@ const KitchenColumn: React.FC<{
 };
 
 interface KitchenViewProps {
-  orders: Omit<Order, 'restaurant'>[];
-  onUpdateOrders: React.Dispatch<React.SetStateAction<Omit<Order, 'restaurant'>[]>>;
+  orders: LiveOrder[];
+  onUpdateOrderStatus: (orderId: string, newStatus: OrderStatus) => void;
   onAcceptOrder: (orderId: string, prepTime: number) => void;
 }
 
-const KitchenView: React.FC<KitchenViewProps> = ({ orders, onUpdateOrders, onAcceptOrder }) => {
+const KitchenView: React.FC<KitchenViewProps> = ({ orders, onUpdateOrderStatus, onAcceptOrder }) => {
     const [orderToAccept, setOrderToAccept] = useState<string | null>(null);
 
-    const handleDrop = (orderId: string, newStatus: OrderStatus) => {
+    const handleDropOnReady = (orderId: string) => {
         const orderToMove = orders.find(o => o.id === orderId);
-        // Only allow moving from Preparing to Ready. New orders must be accepted.
+        // Only allow moving from the preparing statuses.
         if (orderToMove && (orderToMove.status === 'Received' || orderToMove.status === 'Preparing')) {
-            onUpdateOrders(prevOrders => 
-                prevOrders.map(o => o.id === orderId ? { ...o, status: newStatus } : o)
-            );
+            // "Intelligent" status update based on order type
+            const newStatus: OrderStatus = orderToMove.orderType === 'delivery' ? 'Out for Delivery' : 'On Route';
+            onUpdateOrderStatus(orderId, newStatus);
         }
     };
 
@@ -160,17 +169,17 @@ const KitchenView: React.FC<KitchenViewProps> = ({ orders, onUpdateOrders, onAcc
                     ))}
                 </KitchenColumn>
 
-                <KitchenColumn title="Preparing" count={preparingOrders.length} onDrop={(id) => handleDrop(id, 'Preparing')}>
+                <KitchenColumn title="Preparing" count={preparingOrders.length}>
                     {preparingOrders.map(order => (
-                         <div key={order.id} draggable onDragStart={(e) => handleDragStart(e, order.id)}>
+                         <div key={order.id} draggable onDragStart={(e) => handleDragStart(e, order.id)} className="cursor-grab">
                             <OrderTicket order={order} />
                         </div>
                     ))}
                 </KitchenColumn>
                 
-                <KitchenColumn title="Ready for Pickup" count={readyForPickupOrders.length} onDrop={(id) => handleDrop(id, 'On Route')}>
+                <KitchenColumn title="Ready for Pickup" count={readyForPickupOrders.length} onDrop={handleDropOnReady}>
                      {readyForPickupOrders.map(order => (
-                         <div key={order.id} draggable onDragStart={(e) => handleDragStart(e, order.id)}>
+                         <div key={order.id}>
                             <OrderTicket order={order} />
                         </div>
                     ))}

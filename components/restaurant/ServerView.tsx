@@ -14,20 +14,20 @@ const statusColors: Record<OrderStatus, { bg: string, text: string, border: stri
     'Verified': { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-500' },
 };
 
-const TableGraphic: React.FC<{ capacity: number; tableNumber: number; }> = ({ capacity, tableNumber }) => {
+const TableGraphic: React.FC<{ capacity: number; tableNumber: number; colorClass?: string }> = ({ capacity, tableNumber, colorClass = 'text-copy-light' }) => {
     const topChairsCount = Math.ceil(capacity / 2);
     const bottomChairsCount = Math.floor(capacity / 2);
 
     return (
         <div className="flex flex-col items-center justify-center p-2">
-            <div className="flex gap-1">
-                {Array.from({ length: topChairsCount }).map((_, i) => <ArmchairIcon key={`top-${i}`} className="w-5 h-5 text-copy-light" />)}
+            <div className={`flex gap-1 ${colorClass} transition-colors duration-300`}>
+                {Array.from({ length: topChairsCount }).map((_, i) => <ArmchairIcon key={`top-${i}`} className="w-5 h-5" />)}
             </div>
-            <div className="w-full h-10 my-1 bg-surface rounded-lg flex items-center justify-center font-bold text-lg text-copy-rich border border-border">
+            <div className={`w-full h-10 my-1 bg-surface rounded-lg flex items-center justify-center font-bold text-lg border transition-colors duration-300 ${colorClass} ${colorClass === 'text-copy-light' ? 'border-border text-copy-rich' : 'border-current'}`}>
                 {tableNumber}
             </div>
-            <div className="flex gap-1">
-                {Array.from({ length: bottomChairsCount }).map((_, i) => <ArmchairIcon key={`bottom-${i}`} className="w-5 h-5 text-copy-light" />)}
+            <div className={`flex gap-1 ${colorClass} transition-colors duration-300`}>
+                {Array.from({ length: bottomChairsCount }).map((_, i) => <ArmchairIcon key={`bottom-${i}`} className="w-5 h-5" />)}
             </div>
         </div>
     );
@@ -40,11 +40,15 @@ const TableRepresentation: React.FC<{
     alert: ServerAlert | undefined;
     onResolveAlert: (alertId: string) => void;
     onUpdateOrderStatus: (orderId: string, newStatus: OrderStatus) => void;
-}> = ({ table, order, alert, onResolveAlert, onUpdateOrderStatus }) => {
+    onResetTable: (orderId: string) => void;
+}> = ({ table, order, alert, onResolveAlert, onUpdateOrderStatus, onResetTable }) => {
 
     const getStatusStyles = () => {
         if (alert) {
             return 'bg-brand-orange/10 border-brand-orange shadow-lg animate-pulse-glow-orange';
+        }
+        if (order?.status === 'Served') {
+             return 'bg-emerald-500/10 border-emerald-500';
         }
         if (order?.status === 'On Route') {
              return 'bg-green-500/10 border-green-500';
@@ -55,13 +59,26 @@ const TableRepresentation: React.FC<{
         return 'bg-surface border-border';
     };
 
-    const statusText = alert ? "Needs Attention" : order ? "Occupied" : "Available";
+    const graphicColorClass = useMemo(() => {
+        if (alert) return 'text-brand-orange';
+        if (order?.status === 'Served') return 'text-emerald-500';
+        if (order?.status === 'On Route') return 'text-green-500';
+        if (order) return 'text-yellow-500';
+        return 'text-copy-light';
+    }, [order, alert]);
+
+    const totalItems = useMemo(() => {
+        if (!order) return 0;
+        return order.items.reduce((sum, item) => sum + item.quantity, 0);
+    }, [order]);
+
+    const statusText = alert ? "Needs Attention" : order?.status === 'Served' ? 'Served' : order ? "Occupied" : "Available";
     
     const [elapsedTime, setElapsedTime] = useState<string | null>(null);
 
     useEffect(() => {
         let intervalId: number;
-        if (order && order.acceptedAt) {
+        if (order && order.acceptedAt && order.status !== 'Served') {
             const updateTimer = () => {
                 const elapsedSeconds = Math.floor((Date.now() - order.acceptedAt!) / 1000);
                 const mins = Math.floor(elapsedSeconds / 60).toString().padStart(2, '0');
@@ -79,7 +96,7 @@ const TableRepresentation: React.FC<{
 
     return (
         <div className={`rounded-lg border-2 p-3 flex flex-col justify-between transition-all duration-300 ${getStatusStyles()}`}>
-            <TableGraphic capacity={table.capacity} tableNumber={table.number} />
+            <TableGraphic capacity={table.capacity} tableNumber={table.number} colorClass={graphicColorClass} />
             
             <div className="mt-2 border-t pt-2 space-y-2 border-border text-center">
                  <span className="text-xs font-semibold text-copy-light">{statusText}</span>
@@ -93,12 +110,17 @@ const TableRepresentation: React.FC<{
                 )}
                 {order && (
                      <div className="text-xs space-y-1 text-copy-light text-left">
-                        <p><strong>Order:</strong> {order.id.slice(-6)}</p>
+                        <p><strong>Order:</strong> {order.id.slice(-6)} ({totalItems} items)</p>
                         <p><strong>Status:</strong> <span className={`font-semibold ${statusColors[order.status].text}`}>{order.status}</span></p>
                          {elapsedTime && <p><strong>Time:</strong> <span className="font-mono">{elapsedTime}</span></p>}
                         {order.status === 'On Route' && (
                              <button onClick={() => onUpdateOrderStatus(order.id, 'Served')} className="w-full text-xs mt-1 bg-brand-emerald text-white font-semibold py-1 px-2 rounded-md hover:bg-opacity-80 transition flex items-center justify-center gap-1">
                                 <CheckCircleIcon className="w-3 h-3" /> Mark as Served
+                            </button>
+                        )}
+                         {order.status === 'Served' && (
+                             <button onClick={() => onResetTable(order.id)} className="w-full text-xs mt-1 bg-copy-light text-white font-semibold py-1 px-2 rounded-md hover:bg-opacity-80 transition">
+                                Clear & Reset Table
                             </button>
                         )}
                      </div>
@@ -117,9 +139,10 @@ interface ServerViewProps {
   serverAlerts: ServerAlert[];
   onResolveAlert: (alertId: string) => void;
   onUpdateOrderStatus: (orderId: string, newStatus: OrderStatus) => void;
+  onResetTable: (orderId: string) => void;
 }
 
-const ServerView: React.FC<ServerViewProps> = ({ restaurant, liveOrders, serverAlerts, onResolveAlert, onUpdateOrderStatus }) => {
+const ServerView: React.FC<ServerViewProps> = ({ restaurant, liveOrders, serverAlerts, onResolveAlert, onUpdateOrderStatus, onResetTable }) => {
     
     const ordersByTable = useMemo(() => {
         return liveOrders.reduce((acc, order) => {
@@ -155,6 +178,7 @@ const ServerView: React.FC<ServerViewProps> = ({ restaurant, liveOrders, serverA
                             alert={alertsByTable[table.number]}
                             onResolveAlert={onResolveAlert}
                             onUpdateOrderStatus={onUpdateOrderStatus}
+                            onResetTable={onResetTable}
                         />
                     ))}
                 </div>
@@ -171,6 +195,7 @@ const ServerView: React.FC<ServerViewProps> = ({ restaurant, liveOrders, serverA
                                 alert={alertsByTable[table.number]}
                                 onResolveAlert={onResolveAlert}
                                 onUpdateOrderStatus={onUpdateOrderStatus}
+                                onResetTable={onResetTable}
                             />
                         ))}
                     </div>

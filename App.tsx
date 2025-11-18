@@ -369,6 +369,9 @@ const App: React.FC = () => {
   const handleUpdateOrderStatus = (orderId: string, newStatus: OrderStatus) => {
     updateLiveOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
   };
+  const handleResetTable = (orderId: string) => {
+    updateLiveOrders(prev => prev.filter(o => o.id !== orderId));
+  };
 
   const renderDinerContent = () => {
     if (view === View.MENU && selectedRestaurant) {
@@ -399,6 +402,7 @@ const App: React.FC = () => {
                     setOrder={setOrder}
                     onPaymentSuccess={handlePaymentSuccess}
                     resetApp={resetApp}
+                    liveOrders={liveOrders}
                 />
             )}
             {activeTab === Tab.PROFILE && <ProfileScreen user={currentUser} onLogin={handleLogin} onLogout={handleLogout} orders={liveOrders} restaurants={restaurants} />}
@@ -430,6 +434,7 @@ const App: React.FC = () => {
                   onUpdateMenuItem={(item) => handleUpdateMenuItem(loggedInRestaurant.id, item)}
                   onDeleteMenuItem={(itemId) => handleDeleteMenuItem(loggedInRestaurant.id, itemId)}
                   reportData={restaurantReports[loggedInRestaurant.id]} onLogout={handleRestaurantLogout} 
+                  onResetTable={handleResetTable}
                />;
       case 'diner':
       default:

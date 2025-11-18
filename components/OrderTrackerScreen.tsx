@@ -1,9 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { Order, OrderStatus } from '../types';
+import { Order, OrderStatus, OrderType } from '../types';
 import { CheckCircleIcon } from './Icons';
 
-// Server-driven flow means the server manually moves status to 'Served'.
-const STATUS_SEQUENCE: OrderStatus[] = ['Received', 'Preparing', 'On Route', 'Served'];
+const getStatusSequence = (orderType: OrderType): OrderStatus[] => {
+    switch (orderType) {
+        case 'dine-in':
+            return ['Received', 'Preparing', 'On Route', 'Served'];
+        case 'takeaway':
+            // 'On Route' is repurposed as 'Ready for Pickup' in the label logic
+            return ['Received', 'Preparing', 'On Route']; 
+        case 'delivery':
+            return ['Received', 'Preparing', 'Out for Delivery', 'Delivered'];
+        default:
+            return ['Received', 'Preparing'];
+    }
+};
+
+const getStatusLabel = (status: OrderStatus, orderType: OrderType): string => {
+    if (status === 'On Route' && orderType === 'takeaway') {
+        return 'Ready for Pickup';
+    }
+    return status;
+};
 
 interface StatusItemProps {
     status: string;
@@ -33,14 +51,14 @@ interface OrderTrackerScreenProps {
 
 const OrderTrackerScreen: React.FC<OrderTrackerScreenProps> = ({ order, setOrder, onOrderServed }) => {
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
+    const statusSequence = getStatusSequence(order.orderType);
 
     useEffect(() => {
-        // The automatic progression from 'On Route' to 'Served' is removed.
-        // This is now triggered by the server's action.
-        if (order.status === 'Served') {
+        // Automatically move to payment screen if the order is served or delivered
+        if (order.status === 'Served' || order.status === 'Delivered') {
             const finalTimer = setTimeout(() => {
                 onOrderServed();
-            }, 2000); // Wait 2 seconds on "Served" before moving to payment
+            }, 2000); 
             return () => clearTimeout(finalTimer);
         }
     }, [order.status, onOrderServed]);
@@ -58,18 +76,24 @@ const OrderTrackerScreen: React.FC<OrderTrackerScreenProps> = ({ order, setOrder
             const interval = setInterval(calculateTimeLeft, 1000);
             return () => clearInterval(interval);
         } else {
-            setTimeLeft(null); // Clear timer if not in an active tracking state
+            setTimeLeft(null); // Clear timer if not in an active tracking state or if data is missing
         }
     }, [order.status, order.preparationTime, order.acceptedAt]);
 
     const getProgressBarHeight = () => {
-        const currentIndex = STATUS_SEQUENCE.indexOf(order.status);
+        const currentIndex = statusSequence.indexOf(order.status);
         if (currentIndex < 0) return '0%';
-        return `${(currentIndex / (STATUS_SEQUENCE.length - 1)) * 100}%`;
+        return `${(currentIndex / (statusSequence.length - 1)) * 100}%`;
     }
 
     const formatTime = (seconds: number) => {
-        if (seconds <= 0) return "Arriving now";
+        if (seconds <= 0) {
+            switch (order.orderType) {
+                case 'dine-in': return "Arriving now";
+                case 'takeaway': return "Ready now";
+                case 'delivery': return "Arriving now";
+            }
+        }
         const mins = Math.ceil(seconds / 60);
         return `~${mins} min`;
     };
@@ -87,6 +111,8 @@ const OrderTrackerScreen: React.FC<OrderTrackerScreenProps> = ({ order, setOrder
         }
     };
 
+    const isFinalStep = order.status === 'Served' || order.status === 'Delivered' || (order.orderType === 'takeaway' && order.status === 'On Route');
+
     return (
         <div className="min-h-screen p-6 flex flex-col justify-center items-center text-center">
             <div className="absolute top-6 text-center">
@@ -95,7 +121,7 @@ const OrderTrackerScreen: React.FC<OrderTrackerScreenProps> = ({ order, setOrder
             </div>
 
             <div className="mb-8 mt-24">
-                <h1 className="font-sans text-3xl font-bold text-copy">Your order is on its way, {order.orderName}!</h1>
+                <h1 className="font-sans text-3xl font-bold text-copy">Your order is being prepared, {order.orderName}!</h1>
                 <p className="text-copy-light">
                     {getOrderMessage()}
                 </p>
@@ -107,12 +133,12 @@ const OrderTrackerScreen: React.FC<OrderTrackerScreenProps> = ({ order, setOrder
                      <div className="absolute top-0 left-0 w-full bg-primary rounded-full transition-all duration-1000" style={{ height: getProgressBarHeight() }}></div>
                 </div>
                 <div className="space-y-8 relative">
-                    {STATUS_SEQUENCE.map((status, index) => {
-                        const currentStatusIndex = STATUS_SEQUENCE.indexOf(order.status);
+                    {statusSequence.map((status, index) => {
+                        const currentStatusIndex = statusSequence.indexOf(order.status);
                         return (
                             <StatusItem 
                                 key={status}
-                                status={status}
+                                status={getStatusLabel(status, order.orderType)}
                                 isCompleted={index < currentStatusIndex}
                                 isCurrent={index === currentStatusIndex}
                             />
@@ -140,7 +166,7 @@ const OrderTrackerScreen: React.FC<OrderTrackerScreenProps> = ({ order, setOrder
 
             <div className="text-center">
                 <p className="text-copy-light">
-                     {order.status === 'Served' || order.status === 'Delivered' ? 'Enjoy your meal!' : 'Estimated Time Remaining'}
+                     {isFinalStep ? 'Enjoy your meal!' : 'Estimated Time Remaining'}
                 </p>
                 <p className="font-bold text-2xl text-copy">
                     {timeLeft !== null 
