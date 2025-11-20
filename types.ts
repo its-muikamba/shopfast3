@@ -1,3 +1,4 @@
+
 export enum View {
   HOME,
   MENU,
@@ -82,6 +83,13 @@ export interface DeliveryConfig {
     estimatedTime: number; // in minutes
 }
 
+export interface NotificationSettings {
+    emailDailyReport: boolean;
+    pushNewOrder: boolean;
+    pushOrderStatus: boolean;
+    pushTableAlert: boolean;
+}
+
 export interface DailySpecial {
   id: string;
   title: string;
@@ -120,6 +128,7 @@ export interface Restaurant {
   nextBillingDate: string;
   paymentSettings: PaymentSettings;
   deliveryConfig: DeliveryConfig;
+  notificationSettings: NotificationSettings;
   currency: Currency;
   categories: string[];
   tables: Table[];
@@ -176,6 +185,7 @@ export interface Order extends OrderContext {
     userId?: string;
     paymentMethod?: PaymentMethod;
     paymentStatus?: PaymentStatus;
+    isReviewed?: boolean;
 }
 
 export interface LiveOrder extends OrderContext {

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Restaurant, MenuItem, CartItem, AiRecommendation, OrderContext, Review } from '../types';
 import getMenuRecommendations from '../services/geminiService';

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { User, LiveOrder, Restaurant, Review } from '../types';
 import { LogOutIcon, UserCircleIcon } from './Icons';
@@ -163,6 +164,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onLogin, onLogout, 
         }
 
         const userOrders = orders.filter(o => o.userId === user.id);
+        // WARNING: Total spent might be inaccurate if mixed currencies. 
+        // This is a simple implementation assuming most users stick to one region.
         const totalSpent = userOrders.reduce((sum, order) => sum + order.total, 0);
 
         if (userOrders.length === 0) {
@@ -183,7 +186,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onLogin, onLogout, 
             const firstCurrencyCode = firstRestaurant.currency.code;
             const allSameCurrency = userOrders.every(order => {
                 const restaurant = restaurants.find(r => r.id === order.restaurantId);
-                return restaurant?.currency.code === firstCurrencyCode;
+                // If restaurant data missing, assume same currency for now to prevent errors
+                return !restaurant || restaurant.currency.code === firstCurrencyCode;
             });
             if (allSameCurrency) {
                 symbol = firstRestaurant.currency.symbol;

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 
 export const StarRating: React.FC<{ rating: number; onRatingChange?: (rating: number) => void; displayOnly?: boolean; size?: 'sm' | 'md' | 'lg'; }> = ({ rating, onRatingChange, displayOnly = false, size = 'md' }) => {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Restaurant, CartItem, Order, StaffRole, StaffMember, MenuItem, OrderContext, ServerAlert, OrderStatus, RestaurantReportData, BillingHistory, SupportTicket, TicketStatus, Tab, User, LiveOrder, Transaction, PaymentMethod, Review } from './types';
 import { RESTAURANTS, MENUS, STAFF_MEMBERS, INITIAL_ACTIVE_ORDERS, RESTAURANT_REPORTS, BILLING_HISTORY, SUPPORT_TICKETS } from './constants';
@@ -159,13 +160,26 @@ const App: React.FC = () => {
   }, [currentUser]);
 
 
-  // Ensure data migration for currency/reviews happens after load if using LS
+  // Ensure data migration for currency/reviews/serviceRequests/notifications happens after load
   useEffect(() => {
       if (restaurantsLoaded) {
            setRestaurants(prev => prev.map(r => ({
               ...r,
               currency: r.currency || { code: 'KES', symbol: 'Ksh' },
               reviews: r.reviews || [],
+              // Ensure service requests are populated for existing restaurants
+              serviceRequests: (r.serviceRequests && r.serviceRequests.length > 0) ? r.serviceRequests : [
+                  { id: `sr-def-1-${r.id}`, label: 'Request Waiter', icon: 'HandIcon' },
+                  { id: `sr-def-2-${r.id}`, label: 'Request Bill', icon: 'ReceiptIcon' },
+                  { id: `sr-def-3-${r.id}`, label: 'General Assistance', icon: 'BellIcon' },
+              ],
+              // Ensure notification settings are populated
+              notificationSettings: r.notificationSettings || {
+                  emailDailyReport: false,
+                  pushNewOrder: true,
+                  pushOrderStatus: false,
+                  pushTableAlert: true,
+              }
             })));
       }
   }, [restaurantsLoaded]);
@@ -460,7 +474,7 @@ const App: React.FC = () => {
   // HQ App Logic
   const handleHqLogin = () => setIsHqLoggedIn(true);
   const handleHqLogout = () => setIsHqLoggedIn(false);
-  const handleAddRestaurant = (payload: { restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme' | 'currency' | 'categories' | 'tables' | 'serviceRequests' | 'paymentSettings' | 'nextBillingDate' | 'deliveryConfig' | 'reviews'>, adminData: Omit<StaffMember, 'id' | 'restaurantId' | 'role' | 'status'>}) => {
+  const handleAddRestaurant = (payload: { restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme' | 'currency' | 'categories' | 'tables' | 'serviceRequests' | 'paymentSettings' | 'nextBillingDate' | 'deliveryConfig' | 'reviews' | 'notificationSettings'>, adminData: Omit<StaffMember, 'id' | 'restaurantId' | 'role' | 'status'>}) => {
     const { restaurantData, adminData } = payload;
     const newRestaurantId = `r${Date.now()}`;
     
@@ -473,10 +487,20 @@ const App: React.FC = () => {
       currency: { code: 'KES', symbol: 'Ksh' },
       categories: ['Starters', 'Mains', 'Desserts', 'Drinks'],
       tables: [],
-      serviceRequests: [],
+      serviceRequests: [
+        { id: `sr-${Date.now()}-1`, label: 'Request Waiter', icon: 'HandIcon' },
+        { id: `sr-${Date.now()}-2`, label: 'Request Bill', icon: 'ReceiptIcon' },
+        { id: `sr-${Date.now()}-3`, label: 'General Assistance', icon: 'BellIcon' },
+      ],
       reviews: [],
        paymentSettings: { stripe: { enabled: false }, mpesa: { enabled: false }, pesapal: { enabled: false } },
       deliveryConfig: { enabledByAdmin: false, deliveryFee: 0, deliveryRadius: 0, estimatedTime: 0, },
+      notificationSettings: {
+          emailDailyReport: false,
+          pushNewOrder: true,
+          pushOrderStatus: false,
+          pushTableAlert: true,
+      },
       theme: {
           welcomeMessage: `Welcome to ${restaurantData.name}!`,
           primaryColor: '#8A5DFF',

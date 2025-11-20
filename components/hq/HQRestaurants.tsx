@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useEffect } from 'react';
 import { Restaurant, StaffMember, StaffRole } from '../../types';
 import { PlusIcon, EditIcon, Trash2Icon } from '../Icons';
@@ -31,7 +29,7 @@ const CreateRestaurantModal: React.FC<{
     isOpen: boolean; 
     onClose: () => void; 
     onSave: (payload: { 
-        restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme' | 'currency' | 'categories' | 'tables' | 'serviceRequests' | 'paymentSettings' | 'nextBillingDate' | 'deliveryConfig' | 'reviews'>;
+        restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme' | 'currency' | 'categories' | 'tables' | 'serviceRequests' | 'paymentSettings' | 'nextBillingDate' | 'deliveryConfig' | 'reviews' | 'notificationSettings'>;
         adminData: Omit<StaffMember, 'id' | 'restaurantId' | 'role' | 'status'>;
     }) => void;
 }> = ({ isOpen, onClose, onSave }) => {

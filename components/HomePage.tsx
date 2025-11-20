@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { GeneralAiRecommendation, Restaurant } from '../types';
 import { getGeneralRecommendations } from '../services/geminiService';

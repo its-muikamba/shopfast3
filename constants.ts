@@ -1,3 +1,4 @@
+
 import { Restaurant, MenuItem, HQMetrics, AuditLog, StaffMember, StaffRole, LiveOrder, RestaurantReportData, BillingHistory, SupportTicket, Currency, Review } from './types';
 
 export const CURRENCIES: Currency[] = [
@@ -73,6 +74,12 @@ export const RESTAURANTS: Restaurant[] = [
         deliveryRadius: 5,
         estimatedTime: 30,
     },
+    notificationSettings: {
+        emailDailyReport: true,
+        pushNewOrder: true,
+        pushOrderStatus: false,
+        pushTableAlert: true,
+    },
     theme: {
       welcomeMessage: 'Experience the taste of authentic Italian cuisine!',
       primaryColor: '#f2b154',
@@ -124,6 +131,12 @@ export const RESTAURANTS: Restaurant[] = [
         deliveryRadius: 3,
         estimatedTime: 25,
     },
+    notificationSettings: {
+        emailDailyReport: false,
+        pushNewOrder: true,
+        pushOrderStatus: true,
+        pushTableAlert: true,
+    },
     theme: {
       welcomeMessage: 'A culinary journey through Asia.',
       primaryColor: '#f2b154',
@@ -163,6 +176,12 @@ export const RESTAURANTS: Restaurant[] = [
         deliveryRadius: 0,
         estimatedTime: 0,
     },
+    notificationSettings: {
+        emailDailyReport: false,
+        pushNewOrder: true,
+        pushOrderStatus: false,
+        pushTableAlert: false,
+    },
     theme: {
       welcomeMessage: 'Hearty meals, just like home.',
       primaryColor: '#f2b154',
@@ -199,6 +218,12 @@ export const RESTAURANTS: Restaurant[] = [
         deliveryFee: 7.50,
         deliveryRadius: 10,
         estimatedTime: 40,
+    },
+    notificationSettings: {
+        emailDailyReport: true,
+        pushNewOrder: true,
+        pushOrderStatus: true,
+        pushTableAlert: true,
     },
     theme: {
       welcomeMessage: 'The freshest catch in town, served daily.',

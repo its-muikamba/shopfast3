@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Order, PaymentMethod } from '../types';
 import { CheckCircleIcon, QrCodeIcon, XIcon, StripeIcon, MpesaIcon, CreditCardIcon } from './Icons';

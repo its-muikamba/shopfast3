@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { CreditCardIcon, ShoppingCartIcon, StarIcon } from './Icons';
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Restaurant, DailySpecial } from '../../types';
 import { StripeIcon, MpesaIcon, CreditCardIcon, PlusIcon, EditIcon, Trash2Icon } from '../Icons';
@@ -284,6 +285,41 @@ const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaurant, onU
                             {specialsCount === 0 && <p className="text-center text-sm text-copy-light py-4">No specials added yet.</p>}
                         </div>
                      </div>
+                </div>
+
+                {/* Notification Settings */}
+                <div className="bg-surface shadow-md rounded-lg p-8 mt-6 border border-border">
+                    <h2 className="text-2xl font-bold text-copy-rich mb-6">Notification Preferences</h2>
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="font-semibold text-copy">New Order Alerts</p>
+                                <p className="text-sm text-copy-light">Receive push notifications when a new order is placed.</p>
+                            </div>
+                            <ToggleSwitch checked={formData.notificationSettings?.pushNewOrder ?? false} onChange={() => handleToggle('notificationSettings.pushNewOrder')} />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="font-semibold text-copy">Order Status Updates</p>
+                                <p className="text-sm text-copy-light">Receive notifications when order status changes (e.g., Driver Picked Up).</p>
+                            </div>
+                            <ToggleSwitch checked={formData.notificationSettings?.pushOrderStatus ?? false} onChange={() => handleToggle('notificationSettings.pushOrderStatus')} />
+                        </div>
+                         <div className="flex items-center justify-between">
+                            <div>
+                                <p className="font-semibold text-copy">Table Service Alerts</p>
+                                <p className="text-sm text-copy-light">Receive alerts when a customer requests a waiter or bill.</p>
+                            </div>
+                            <ToggleSwitch checked={formData.notificationSettings?.pushTableAlert ?? false} onChange={() => handleToggle('notificationSettings.pushTableAlert')} />
+                        </div>
+                         <div className="flex items-center justify-between">
+                            <div>
+                                <p className="font-semibold text-copy">Daily Sales Report</p>
+                                <p className="text-sm text-copy-light">Receive a summary of daily sales via email.</p>
+                            </div>
+                            <ToggleSwitch checked={formData.notificationSettings?.emailDailyReport ?? false} onChange={() => handleToggle('notificationSettings.emailDailyReport')} />
+                        </div>
+                    </div>
                 </div>
 
                 {/* Delivery Settings */}

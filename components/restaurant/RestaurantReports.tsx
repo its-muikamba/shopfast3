@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Restaurant, RestaurantReportData } from '../../types';
 import { CreditCardIcon, ShoppingCartIcon, UsersIcon, FileTextIcon, ShoppingCartOffIcon } from '../Icons';

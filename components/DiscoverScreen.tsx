@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Restaurant } from '../types';
 import { MapPinIcon, QrCodeIcon, StarIcon } from './Icons';
