@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useEffect } from 'react';
 import { Order, OrderStatus, Table, ServerAlert, Restaurant } from '../../types';
 import { ArmchairIcon, CheckCircleIcon, RefreshCwIcon, ShoppingCartIcon } from '../Icons';
@@ -101,6 +102,14 @@ const TableRepresentation: React.FC<{
         return () => window.clearInterval(intervalId);
     }, [order]);
 
+    const canReset = order && (
+        order.status === 'Served' || 
+        order.status === 'Paid' || 
+        order.status === 'Verified' || 
+        order.status === 'Delivered' ||
+        order.paymentStatus === 'paid'
+    );
+
 
     return (
         <div className={`rounded-lg border-2 p-3 flex flex-col justify-between transition-all duration-300 ${getStatusStyles()}`}>
@@ -129,7 +138,7 @@ const TableRepresentation: React.FC<{
                             <button onClick={() => onUpdateOrderStatus(order.id, 'Served')} className="w-full text-xs mt-1 bg-brand-emerald text-white font-semibold py-1 px-2 rounded-md hover:bg-opacity-80 transition flex items-center justify-center gap-1">
                                 <CheckCircleIcon className="w-3 h-3" /> Mark as Served
                             </button>
-                        ) : (order.status === 'Served' || order.paymentStatus === 'paid') && (
+                        ) : canReset && (
                             <button onClick={() => onResetTable(order.id)} className="w-full text-xs mt-1 bg-copy-light text-white font-semibold py-1 px-2 rounded-md hover:bg-opacity-80 transition flex items-center justify-center gap-1">
                                 <RefreshCwIcon className="w-3 h-3"/> Clear & Reset Table
                             </button>

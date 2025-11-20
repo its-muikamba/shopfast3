@@ -1,6 +1,4 @@
-
-
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Restaurant, CartItem, Order, StaffRole, StaffMember, MenuItem, OrderContext, ServerAlert, OrderStatus, RestaurantReportData, BillingHistory, SupportTicket, TicketStatus, Tab, User, LiveOrder, Transaction, PaymentMethod, Review } from './types';
 import { RESTAURANTS, MENUS, STAFF_MEMBERS, INITIAL_ACTIVE_ORDERS, RESTAURANT_REPORTS, BILLING_HISTORY, SUPPORT_TICKETS } from './constants';
 import DiscoverScreen from './components/DiscoverScreen';
@@ -16,15 +14,16 @@ import BottomNavBar from './components/common/BottomNavBar';
 import HomePage from './components/HomePage';
 import OrderPage from './components/OrderPage';
 import ProfileScreen from './components/ProfileScreen';
+import { syncState, supabase, signOut } from './services/supabase';
 
-// Keys for localStorage
-const LIVE_ORDERS_STORAGE_KEY = 'shopfast_liveOrders';
-const SERVER_ALERTS_STORAGE_KEY = 'shopfast_serverAlerts';
-const CURRENT_USER_STORAGE_KEY = 'shopfast_currentUser';
-const TRANSACTIONS_STORAGE_KEY = 'shopfast_transactions';
-const RESTAURANTS_STORAGE_KEY = 'shopfast_restaurants';
-const MENUS_STORAGE_KEY = 'shopfast_menus';
-const STAFF_STORAGE_KEY = 'shopfast_staff';
+// Keys for localStorage / Supabase Tables
+const LIVE_ORDERS_KEY = 'shopfast_liveOrders';
+const SERVER_ALERTS_KEY = 'shopfast_serverAlerts';
+const CURRENT_USER_KEY = 'shopfast_currentUser';
+const TRANSACTIONS_KEY = 'shopfast_transactions';
+const RESTAURANTS_KEY = 'shopfast_restaurants';
+const MENUS_KEY = 'shopfast_menus';
+const STAFF_KEY = 'shopfast_staff';
 
 
 // Helper to safely parse JSON from localStorage
@@ -38,6 +37,53 @@ const getFromStorage = <T,>(key: string, fallback: T): T => {
     }
 };
 
+// Custom Hook: Handles Data Synchronization (LocalStorage <-> State <-> Supabase)
+function useDataSync<T>(
+    key: string, 
+    tableName: string, 
+    state: T, 
+    setState: React.Dispatch<React.SetStateAction<T>>, 
+    delay: number = 1000
+) {
+    const [isLoaded, setIsLoaded] = useState(false);
+    const firstRender = useRef(true);
+
+    // 1. Initial Load
+    useEffect(() => {
+        const loadData = async () => {
+            // If Supabase is active, syncState handles fetching
+            // If Supabase is inactive, we manually load from LS here for the initial state
+            if (!supabase) {
+                const localData = getFromStorage<T>(key, state);
+                // Merge logic for migration (e.g. restaurants) could go here
+                if (JSON.stringify(localData) !== JSON.stringify(state)) {
+                     setState(localData);
+                }
+                setIsLoaded(true);
+            } else {
+                // Supabase Load
+                 await syncState(tableName, key, state, setState, true);
+                 setIsLoaded(true);
+            }
+        };
+        loadData();
+        firstRender.current = false;
+    }, []);
+
+    // 2. Sync on Change (Debounced)
+    useEffect(() => {
+        if (!isLoaded) return;
+
+        const handler = setTimeout(() => {
+            syncState(tableName, key, state, setState, false);
+        }, delay);
+
+        return () => clearTimeout(handler);
+    }, [state, key, tableName, delay, isLoaded]);
+
+    return isLoaded;
+}
+
 
 type AppMode = 'diner' | 'hq' | 'restaurant';
 
@@ -50,17 +96,81 @@ const getAppModeFromHash = (): AppMode => {
 
 
 const App: React.FC = () => {
-  // Global State
-  const [restaurants, setRestaurants] = useState<Restaurant[]>(() => {
-    const stored = getFromStorage<Restaurant[]>(RESTAURANTS_STORAGE_KEY, RESTAURANTS);
-    // Data migration for older localStorage data
-    return stored.map(r => ({
-      ...r,
-      currency: r.currency || { code: 'KES', symbol: 'Ksh' }, // Ensures currency exists
-      reviews: r.reviews || [], // Ensures reviews array exists
-    }));
-  });
-  const [menus, setMenus] = useState<Record<string, MenuItem[]>>(() => getFromStorage(MENUS_STORAGE_KEY, MENUS));
+  
+  // Global State Initialization with Defaults
+  const [restaurants, setRestaurants] = useState<Restaurant[]>(RESTAURANTS);
+  const [menus, setMenus] = useState<Record<string, MenuItem[]>>(MENUS);
+  const [staff, setStaff] = useState<StaffMember[]>(STAFF_MEMBERS);
+  const [liveOrders, setLiveOrders] = useState<LiveOrder[]>(INITIAL_ACTIVE_ORDERS);
+  const [serverAlerts, setServerAlerts] = useState<ServerAlert[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  // Data Sync Hooks
+  const restaurantsLoaded = useDataSync(RESTAURANTS_KEY, 'restaurants', restaurants, setRestaurants);
+  const menusLoaded = useDataSync(MENUS_KEY, 'menus', menus, setMenus);
+  const staffLoaded = useDataSync(STAFF_KEY, 'staff', staff, setStaff);
+  const ordersLoaded = useDataSync(LIVE_ORDERS_KEY, 'orders', liveOrders, setLiveOrders, 500);
+  const alertsLoaded = useDataSync(SERVER_ALERTS_KEY, 'alerts', serverAlerts, setServerAlerts, 500);
+  const transactionsLoaded = useDataSync(TRANSACTIONS_KEY, 'transactions', transactions, setTransactions);
+  
+  // User Auth Initialization (Supabase or Fallback)
+  useEffect(() => {
+    if (supabase) {
+        // 1. Check active session on mount
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user) {
+                setCurrentUser({
+                    id: session.user.id,
+                    email: session.user.email || '',
+                    name: session.user.user_metadata.full_name || 'User',
+                    orderHistory: []
+                });
+            }
+        });
+
+        // 2. Listen for auth changes (Login/Logout/Signup)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (session?.user) {
+                setCurrentUser({
+                    id: session.user.id,
+                    email: session.user.email || '',
+                    name: session.user.user_metadata.full_name || 'User',
+                    orderHistory: []
+                });
+            } else {
+                setCurrentUser(null);
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    } else {
+        // Fallback: Load from LocalStorage for prototype mode
+        const localUser = getFromStorage<User | null>(CURRENT_USER_KEY, null);
+        if (localUser) setCurrentUser(localUser);
+    }
+  }, []);
+
+  // Sync User to LocalStorage ONLY if Supabase is NOT active (Fallback mode)
+  useEffect(() => {
+      if (!supabase) {
+          localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
+      }
+  }, [currentUser]);
+
+
+  // Ensure data migration for currency/reviews happens after load if using LS
+  useEffect(() => {
+      if (restaurantsLoaded) {
+           setRestaurants(prev => prev.map(r => ({
+              ...r,
+              currency: r.currency || { code: 'KES', symbol: 'Ksh' },
+              reviews: r.reviews || [],
+            })));
+      }
+  }, [restaurantsLoaded]);
+
+
   const [appMode, setAppMode] = useState<AppMode>(getAppModeFromHash());
   const [restaurantReports, setRestaurantReports] = useState<Record<string, RestaurantReportData>>(RESTAURANT_REPORTS);
   const [billingHistory, setBillingHistory] = useState<BillingHistory[]>(BILLING_HISTORY);
@@ -79,7 +189,7 @@ const App: React.FC = () => {
   }, [handleHashChange]);
 
   // Diner App State
-  const [view, setView] = useState<View>(View.HOME); // This now controls sub-views like the menu
+  const [view, setView] = useState<View>(View.HOME); 
   const [activeTab, setActiveTab] = useState<Tab>(Tab.HOME);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -88,47 +198,25 @@ const App: React.FC = () => {
   const [orderContext, setOrderContext] = useState<OrderContext | null>(null);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
 
-  // User Auth State
-  const [currentUser, setCurrentUser] = useState<User | null>(() => getFromStorage(CURRENT_USER_STORAGE_KEY, null));
-
   // HQ App State
   const [isHqLoggedIn, setIsHqLoggedIn] = useState(false);
-  const [staff, setStaff] = useState<StaffMember[]>(() => getFromStorage(STAFF_STORAGE_KEY, STAFF_MEMBERS));
 
   // Restaurant App State
   const [loggedInRestaurant, setLoggedInRestaurant] = useState<Restaurant | null>(null);
   const [loggedInRole, setLoggedInRole] = useState<StaffRole | null>(null);
   
-  // REAL-TIME STATE (with cross-tab sync)
-  const [liveOrders, setLiveOrders] = useState<LiveOrder[]>(() => getFromStorage(LIVE_ORDERS_STORAGE_KEY, INITIAL_ACTIVE_ORDERS));
-  const [serverAlerts, setServerAlerts] = useState<ServerAlert[]>(() => getFromStorage(SERVER_ALERTS_STORAGE_KEY, []));
-  const [transactions, setTransactions] = useState<Transaction[]>(() => getFromStorage(TRANSACTIONS_STORAGE_KEY, []));
-
-
-  // Cross-tab synchronization effect
+  // Cross-tab synchronization (LocalStorage event listener for multi-tab support in LS mode)
   useEffect(() => {
+    if (supabase) return; // Skip LS sync if using Supabase
+
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === LIVE_ORDERS_STORAGE_KEY && e.newValue) {
-        setLiveOrders(JSON.parse(e.newValue));
-      }
-      if (e.key === SERVER_ALERTS_STORAGE_KEY && e.newValue) {
-        setServerAlerts(JSON.parse(e.newValue));
-      }
-      if (e.key === CURRENT_USER_STORAGE_KEY && e.newValue) {
-        setCurrentUser(JSON.parse(e.newValue));
-      }
-      if (e.key === TRANSACTIONS_STORAGE_KEY && e.newValue) {
-        setTransactions(JSON.parse(e.newValue));
-      }
-      if (e.key === RESTAURANTS_STORAGE_KEY && e.newValue) {
-          setRestaurants(JSON.parse(e.newValue));
-      }
-      if (e.key === STAFF_STORAGE_KEY && e.newValue) {
-          setStaff(JSON.parse(e.newValue));
-      }
-      if (e.key === MENUS_STORAGE_KEY && e.newValue) {
-          setMenus(JSON.parse(e.newValue));
-      }
+      if (e.key === LIVE_ORDERS_KEY && e.newValue) setLiveOrders(JSON.parse(e.newValue));
+      if (e.key === SERVER_ALERTS_KEY && e.newValue) setServerAlerts(JSON.parse(e.newValue));
+      if (e.key === CURRENT_USER_KEY && e.newValue) setCurrentUser(JSON.parse(e.newValue));
+      if (e.key === TRANSACTIONS_KEY && e.newValue) setTransactions(JSON.parse(e.newValue));
+      if (e.key === RESTAURANTS_KEY && e.newValue) setRestaurants(JSON.parse(e.newValue));
+      if (e.key === STAFF_KEY && e.newValue) setStaff(JSON.parse(e.newValue));
+      if (e.key === MENUS_KEY && e.newValue) setMenus(JSON.parse(e.newValue));
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -136,76 +224,59 @@ const App: React.FC = () => {
       window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
+
   
-  // Custom setters that update both state and localStorage
+  // Custom setters that only update state (persistence is handled by hook)
   const updateLiveOrders = useCallback((updater: React.SetStateAction<LiveOrder[]>) => {
     setLiveOrders(prevOrders => {
-      const newOrders = typeof updater === 'function' ? updater(prevOrders) : updater;
-      localStorage.setItem(LIVE_ORDERS_STORAGE_KEY, JSON.stringify(newOrders));
-      window.dispatchEvent(new StorageEvent('storage', { key: LIVE_ORDERS_STORAGE_KEY, newValue: JSON.stringify(newOrders) }));
-      return newOrders;
+      return typeof updater === 'function' ? updater(prevOrders) : updater;
     });
   }, []);
 
   const updateServerAlerts = useCallback((updater: React.SetStateAction<ServerAlert[]>) => {
     setServerAlerts(prevAlerts => {
-      const newAlerts = typeof updater === 'function' ? updater(prevAlerts) : updater;
-      localStorage.setItem(SERVER_ALERTS_STORAGE_KEY, JSON.stringify(newAlerts));
-       window.dispatchEvent(new StorageEvent('storage', { key: SERVER_ALERTS_STORAGE_KEY, newValue: JSON.stringify(newAlerts) }));
-      return newAlerts;
+      return typeof updater === 'function' ? updater(prevAlerts) : updater;
     });
   }, []);
 
   const updateUser = useCallback((user: User | null) => {
     setCurrentUser(user);
-    if (user) {
-        localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(user));
-    } else {
-        localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
-    }
-    window.dispatchEvent(new StorageEvent('storage', { key: CURRENT_USER_STORAGE_KEY, newValue: JSON.stringify(user) }));
   }, []);
 
    const updateTransactions = useCallback((updater: React.SetStateAction<Transaction[]>) => {
     setTransactions(prev => {
-      const newTransactions = typeof updater === 'function' ? updater(prev) : updater;
-      localStorage.setItem(TRANSACTIONS_STORAGE_KEY, JSON.stringify(newTransactions));
-      window.dispatchEvent(new StorageEvent('storage', { key: TRANSACTIONS_STORAGE_KEY, newValue: JSON.stringify(newTransactions) }));
-      return newTransactions;
+      return typeof updater === 'function' ? updater(prev) : updater;
     });
   }, []);
 
   const updateRestaurants = useCallback((updater: React.SetStateAction<Restaurant[]>) => {
     setRestaurants(prev => {
-        const newItems = typeof updater === 'function' ? updater(prev) : updater;
-        localStorage.setItem(RESTAURANTS_STORAGE_KEY, JSON.stringify(newItems));
-        window.dispatchEvent(new StorageEvent('storage', { key: RESTAURANTS_STORAGE_KEY, newValue: JSON.stringify(newItems) }));
-        return newItems;
+        return typeof updater === 'function' ? updater(prev) : updater;
     });
   }, []);
 
   const updateStaff = useCallback((updater: React.SetStateAction<StaffMember[]>) => {
       setStaff(prev => {
-          const newItems = typeof updater === 'function' ? updater(prev) : updater;
-          localStorage.setItem(STAFF_STORAGE_KEY, JSON.stringify(newItems));
-          window.dispatchEvent(new StorageEvent('storage', { key: STAFF_STORAGE_KEY, newValue: JSON.stringify(newItems) }));
-          return newItems;
+          return typeof updater === 'function' ? updater(prev) : updater;
       });
   }, []);
 
   const updateMenus = useCallback((updater: React.SetStateAction<Record<string, MenuItem[]>>) => {
       setMenus(prev => {
-          const newItems = typeof updater === 'function' ? updater(prev) : updater;
-          localStorage.setItem(MENUS_STORAGE_KEY, JSON.stringify(newItems));
-          window.dispatchEvent(new StorageEvent('storage', { key: MENUS_STORAGE_KEY, newValue: JSON.stringify(newItems) }));
-          return newItems;
+          return typeof updater === 'function' ? updater(prev) : updater;
       });
   }, []);
 
 
   // Diner App Logic
   const handleLogin = (user: User) => updateUser(user);
-  const handleLogout = () => updateUser(null);
+  
+  const handleLogout = async () => {
+      if (supabase) {
+          await signOut();
+      }
+      updateUser(null);
+  };
 
   const handleSelectRestaurant = (restaurant: Restaurant) => {
     setSelectedRestaurant(restaurant);
@@ -386,7 +457,7 @@ const App: React.FC = () => {
 };
 
 
-  // HQ App Logic (remains unchanged)
+  // HQ App Logic
   const handleHqLogin = () => setIsHqLoggedIn(true);
   const handleHqLogout = () => setIsHqLoggedIn(false);
   const handleAddRestaurant = (payload: { restaurantData: Omit<Restaurant, 'id' | 'rating' | 'distance' | 'theme' | 'currency' | 'categories' | 'tables' | 'serviceRequests' | 'paymentSettings' | 'nextBillingDate' | 'deliveryConfig' | 'reviews'>, adminData: Omit<StaffMember, 'id' | 'restaurantId' | 'role' | 'status'>}) => {
@@ -474,7 +545,7 @@ const App: React.FC = () => {
   };
 
   
-  // Restaurant App Logic (remains unchanged)
+  // Restaurant App Logic
   const handleRestaurantLogin = (restaurantId: string, name: string, pin: string) => {
     const restaurant = restaurants.find(r => r.id === restaurantId);
     if (!restaurant) { alert('Restaurant not found.'); return; }
@@ -541,8 +612,17 @@ const App: React.FC = () => {
     );
   };
 
-
   const renderApp = () => {
+      // Display loading if using Supabase and data isn't ready
+      if (supabase && (!restaurantsLoaded || !menusLoaded || !staffLoaded)) {
+          return (
+              <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary"></div>
+                  <p className="mt-4 text-copy-light">Syncing with Supabase...</p>
+              </div>
+          )
+      }
+
     switch(appMode) {
       case 'hq':
         if (!isHqLoggedIn) return <HQLoginScreen onLogin={handleHqLogin} />;

@@ -3,13 +3,32 @@ import { User, LiveOrder, Restaurant, Review } from '../types';
 import { LogOutIcon, UserCircleIcon } from './Icons';
 import UsageStats from './UsageStats';
 import OrderHistoryCard from './OrderHistoryCard';
+import { signIn, signUp, supabase } from '../services/supabase';
 
-// Mock Screens for now
 const LoginScreen: React.FC<{ onLogin: (user: User) => void, onSwitchToSignUp: () => void }> = ({ onLogin, onSwitchToSignUp }) => {
-    const handleLogin = (e: React.FormEvent) => {
+    const [email, setEmail] = useState('gilbert@example.com');
+    const [password, setPassword] = useState('password');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Mock login
-        onLogin({ id: 'u1', name: 'Gilbert', email: 'gilbert@example.com', orderHistory: [] });
+        setError('');
+        
+        if (supabase) {
+            setLoading(true);
+            const { data, error } = await signIn(email, password);
+            setLoading(false);
+            
+            if (error) {
+                setError(error.message);
+                return;
+            }
+            // Successful login is handled by App.tsx onAuthStateChange listener
+        } else {
+            // Mock login for fallback
+            onLogin({ id: 'u1', name: 'Gilbert', email, orderHistory: [] });
+        }
     };
 
     return (
@@ -20,10 +39,25 @@ const LoginScreen: React.FC<{ onLogin: (user: User) => void, onSwitchToSignUp: (
                 <p className="text-copy-light">Access your profile and order history.</p>
             </div>
             <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-                <input type="email" placeholder="Email (e.g. gilbert@example.com)" className="w-full shadcn-input" required defaultValue="gilbert@example.com" />
-                <input type="password" placeholder="Password" className="w-full shadcn-input" required defaultValue="password" />
-                <button type="submit" className="w-full bg-primary text-brand-charcoal font-bold py-3 rounded-lg shadow-glow-primary">
-                    Login
+                 {error && <div className="text-red-500 text-sm text-center bg-red-100 p-2 rounded">{error}</div>}
+                <input 
+                    type="email" 
+                    placeholder="Email" 
+                    className="w-full shadcn-input" 
+                    required 
+                    value={email} 
+                    onChange={e => setEmail(e.target.value)}
+                />
+                <input 
+                    type="password" 
+                    placeholder="Password" 
+                    className="w-full shadcn-input" 
+                    required 
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                />
+                <button type="submit" disabled={loading} className="w-full bg-primary text-brand-charcoal font-bold py-3 rounded-lg shadow-glow-primary disabled:bg-gray-400">
+                    {loading ? 'Logging in...' : 'Login'}
                 </button>
                 <p className="text-center text-sm">
                     <button type="button" onClick={onSwitchToSignUp} className="font-medium text-primary hover:underline">
@@ -36,11 +70,35 @@ const LoginScreen: React.FC<{ onLogin: (user: User) => void, onSwitchToSignUp: (
 };
 
 const SignUpScreen: React.FC<{ onSignUp: (user: User) => void, onSwitchToLogin: () => void }> = ({ onSignUp, onSwitchToLogin }) => {
-     const handleSignUp = (e: React.FormEvent) => {
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleSignUp = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Mock signup
-        onSignUp({ id: 'u1', name: 'Gilbert', email: 'gilbert@example.com', orderHistory: [] });
+        setError('');
+        
+        if (supabase) {
+            setLoading(true);
+            const { data, error } = await signUp(email, password, name);
+            setLoading(false);
+            
+            if (error) {
+                setError(error.message);
+                return;
+            }
+            // Successful signup will automatically log in most cases or require confirmation
+            if (data.user && !data.session) {
+                setError('Account created! Please check your email to confirm.');
+            }
+        } else {
+            // Mock signup for fallback
+            onSignUp({ id: 'u1', name, email, orderHistory: [] });
+        }
     };
+
     return (
          <div className="w-full max-w-md p-8 space-y-8 glass-card rounded-2xl">
             <div className="text-center">
@@ -49,11 +107,33 @@ const SignUpScreen: React.FC<{ onSignUp: (user: User) => void, onSwitchToLogin: 
                  <p className="text-copy-light">Join to get a personalized experience.</p>
             </div>
             <form className="mt-8 space-y-6" onSubmit={handleSignUp}>
-                <input type="text" placeholder="Full Name" className="w-full shadcn-input" required />
-                <input type="email" placeholder="Email" className="w-full shadcn-input" required />
-                <input type="password" placeholder="Password" className="w-full shadcn-input" required />
-                <button type="submit" className="w-full bg-primary text-brand-charcoal font-bold py-3 rounded-lg shadow-glow-primary">
-                    Sign Up
+                {error && <div className="text-red-500 text-sm text-center bg-red-100 p-2 rounded">{error}</div>}
+                <input 
+                    type="text" 
+                    placeholder="Full Name" 
+                    className="w-full shadcn-input" 
+                    required 
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                />
+                <input 
+                    type="email" 
+                    placeholder="Email" 
+                    className="w-full shadcn-input" 
+                    required 
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                />
+                <input 
+                    type="password" 
+                    placeholder="Password" 
+                    className="w-full shadcn-input" 
+                    required 
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                />
+                <button type="submit" disabled={loading} className="w-full bg-primary text-brand-charcoal font-bold py-3 rounded-lg shadow-glow-primary disabled:bg-gray-400">
+                    {loading ? 'Signing up...' : 'Sign Up'}
                 </button>
                  <p className="text-center text-sm">
                     <button type="button" onClick={onSwitchToLogin} className="font-medium text-primary hover:underline">
