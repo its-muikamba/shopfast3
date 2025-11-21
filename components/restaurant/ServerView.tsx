@@ -48,11 +48,11 @@ const TableRepresentation: React.FC<{
         if (alert) {
             return 'bg-brand-orange/10 border-brand-orange shadow-lg animate-pulse-glow-orange';
         }
-        if (order?.paymentStatus === 'paid') {
+        if (order?.paymentStatus === 'paid' || order?.status === 'Paid') {
             return 'bg-emerald-500/10 border-emerald-500';
         }
         if (order?.status === 'Served') {
-             return 'bg-emerald-500/10 border-emerald-500';
+             return 'bg-blue-500/10 border-blue-500';
         }
         if (order?.status === 'On Route') {
              return 'bg-green-500/10 border-green-500';
@@ -65,8 +65,8 @@ const TableRepresentation: React.FC<{
 
     const graphicColorClass = useMemo(() => {
         if (alert) return 'text-brand-orange';
-        if (order?.paymentStatus === 'paid') return 'text-emerald-500';
-        if (order?.status === 'Served') return 'text-emerald-500';
+        if (order?.paymentStatus === 'paid' || order?.status === 'Paid') return 'text-emerald-500';
+        if (order?.status === 'Served') return 'text-blue-500';
         if (order?.status === 'On Route') return 'text-green-500';
         if (order) return 'text-yellow-500';
         return 'text-copy-light';
@@ -78,7 +78,7 @@ const TableRepresentation: React.FC<{
     }, [order]);
 
     const statusText = alert ? "Needs Attention" 
-        : order?.paymentStatus === 'paid' ? "Paid"
+        : (order?.paymentStatus === 'paid' || order?.status === 'Paid') ? "Paid"
         : order?.status === 'Served' ? 'Served' 
         : order ? "Occupied" 
         : "Available";
@@ -87,7 +87,7 @@ const TableRepresentation: React.FC<{
 
     useEffect(() => {
         let intervalId: number;
-        if (order && order.acceptedAt && order.status !== 'Served') {
+        if (order && order.acceptedAt && order.status !== 'Served' && order.status !== 'Paid') {
             const updateTimer = () => {
                 const elapsedSeconds = Math.floor((Date.now() - order.acceptedAt!) / 1000);
                 const mins = Math.floor(elapsedSeconds / 60).toString().padStart(2, '0');

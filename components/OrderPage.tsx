@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Order, LiveOrder } from '../types';
 import OrderTrackerScreen from './OrderTrackerScreen';
@@ -13,8 +14,7 @@ interface OrderPageProps {
 }
 
 const OrderPage: React.FC<OrderPageProps> = ({ order, liveOrders, setOrder, onPaymentSuccess, resetApp }) => {
-    const [flowStep, setFlowStep] = useState<'tracking' | 'payment'>('tracking');
-
+    
     const liveOrderData = useMemo(() => {
         if (!order) return null;
         const liveVersion = liveOrders.find(lo => lo.id === order.id);
@@ -28,14 +28,16 @@ const OrderPage: React.FC<OrderPageProps> = ({ order, liveOrders, setOrder, onPa
         return order;
     }, [order, liveOrders]);
 
-
-    useEffect(() => {
-        if (liveOrderData?.status === 'Served' || liveOrderData?.status === 'Delivered' || liveOrderData?.status === 'Paid' || liveOrderData?.status === 'Verified') {
-            setFlowStep('payment');
-        } else if (liveOrderData) {
-            setFlowStep('tracking');
+    // Initialize flowStep based on the current status.
+    // We DO NOT use a useEffect to force this, allowing OrderTrackerScreen to control the transition via callback.
+    const [flowStep, setFlowStep] = useState<'tracking' | 'payment'>(() => {
+        const status = liveOrderData?.status;
+        // If loading the page and order is already done, go straight to payment/receipt
+        if (status === 'Served' || status === 'Delivered' || status === 'Paid' || status === 'Verified') {
+            return 'payment';
         }
-    }, [liveOrderData]);
+        return 'tracking';
+    });
 
     const handleOrderServed = () => {
         setFlowStep('payment');
